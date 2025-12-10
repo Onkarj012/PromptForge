@@ -22,6 +22,10 @@ class OrchestratorAgent:
         "anthropic/claude-3-haiku": 0.25,
         "google/gemini-2.0-flash-exp:free": 0.00,  # Free tier
         "google/gemini-pro-1.5": 1.25,
+        "deepseek/deepseek-v3.2-speciale": 0.27,
+        "deepseek/deepseek-v3.1-terminus:exacto": 0.21,
+        "deepseek/deepseek-r1-0528": 0.40,
+
     }
     
     async def refine_prompt(self, request: PromptRequest) -> RefinementResponse:
