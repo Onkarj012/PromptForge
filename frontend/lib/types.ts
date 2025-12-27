@@ -11,8 +11,8 @@ export type RefineResponse = {
     run_id: number;
     final_prompt: string;
     final_score?: number;
-    total_cost: number;
-    total_iterations: number;
+    total_cost?: number;
+    iterations: number;
 };
 
 export interface Iteration {

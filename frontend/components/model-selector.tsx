@@ -15,23 +15,23 @@ interface ModelSelectorProps {
 
 const MODELS = [
   // OpenAI – Latest GPT Models
-  { value: "openai:gpt-4o", label: "GPT-4o" },
-  { value: "openai:gpt-4o-mini", label: "GPT-4o Mini" },
-  { value: "openai:chatgpt-5.1", label: "GPT-5.1" },
-  { value: "openai:gpt-5.2", label: "GPT-5.2" },
-  { value: "openai:gpt-5-mini", label: "GPT-5 Mini" },
+  { value: "openai/gpt-4o", label: "GPT-4o" },
+  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
+  { value: "openai/chatgpt-5.1", label: "GPT-5.1" },
+  { value: "openai/gpt-5.2", label: "GPT-5.2" },
+  { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
   { value: "openai/gpt-oss-20b", label: "GPT-OSS-20B" },
 
   // Anthropic – Claude Family
-  { value: "anthropic:claude-opus-4.5", label: "Claude Opus 4.5" },
-  { value: "anthropic:claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
-  { value: "anthropic:claude-haiku-4.5", label: "Claude Haiku 4.5" },
+  { value: "anthropic/claude-opus-4.5", label: "Claude Opus 4.5" },
+  { value: "anthropic/claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
+  { value: "anthropic/claude-haiku-4.5", label: "Claude Haiku 4.5" },
 
   // Google – Gemini Series
-  { value: "google:gemini-3-pro-preview", label: "Gemini 3 Pro (Preview)" },
+  { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro (Preview)" },
   { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (Preview)" },
-  { value: "google:gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-  { value: "google:gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
 
   // DeepSeek Models (OpenRouter)
   { value: "deepseek/deepseek-r1", label: "DeepSeek R1" },

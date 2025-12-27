@@ -180,21 +180,23 @@ export default function Page() {
               {response && (
                 <Alert>
                   <AlertDescription className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Final Score:</span>
-                      <Badge>{response.final_score}/10</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Total Cost:</span>
-                      <span className="text-sm">
-                        ${response.total_cost.toFixed(4)}
-                      </span>
-                    </div>
+                    {response.final_score !== undefined && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold">Final Score:</span>
+                        <Badge>{response.final_score}/10</Badge>
+                      </div>
+                    )}
+                    {response.total_cost !== undefined && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold">Total Cost:</span>
+                        <span className="text-sm">
+                          ${response.total_cost.toFixed(4)}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="font-semibold">Iterations:</span>
-                      <span className="text-sm">
-                        {response.total_iterations}
-                      </span>
+                      <span className="text-sm">{response.iterations}</span>
                     </div>
                   </AlertDescription>
                 </Alert>
