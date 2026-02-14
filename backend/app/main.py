@@ -4,6 +4,7 @@ from app.config import settings
 from app.core.logging import setup_logging
 from app.api.health import router as health_router
 from app.api.agents import router as agent_router
+from app.db.init_db import init_db
 
 setup_logging()
 
@@ -12,6 +13,12 @@ app = FastAPI(
     version="0.0.1",
     debug=True,
 )
+
+
+@app.on_event("startup")
+async def ensure_db_ready():
+    if settings.ENV == "development" or settings.DEBUG:
+        await init_db()
 
 app.add_middleware(
     CORSMiddleware,

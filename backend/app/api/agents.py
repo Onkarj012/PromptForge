@@ -67,5 +67,7 @@ async def refine_prompt(
     return {
         "run_id": run_id,
         "final_prompt": final_state["current_prompt"],
+        "final_score": final_state.get("final_score"),
         "iterations": final_state["iteration"],
+        "iterations_detail": final_state.get("history", []),
     }

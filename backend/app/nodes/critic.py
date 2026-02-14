@@ -53,6 +53,8 @@ JSON schema:
 
     try:
         critique = json.loads(raw)
+        if not isinstance(critique, dict):
+            raise ValueError("Critique is not a dict")
     except Exception:
         # 🔥 Fail-safe (never crash the system)
         critique = {
@@ -62,6 +64,10 @@ JSON schema:
             "suggestions": [],
             "raw_output": raw,
         }
+
+    critique.setdefault("strengths", [])
+    critique.setdefault("weaknesses", [])
+    critique.setdefault("suggestions", [])
 
     state["critique"] = critique
     return state

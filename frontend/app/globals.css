@@ -124,3 +124,25 @@
     @apply bg-background text-foreground;
   }
 }
+
+html,
+body {
+  min-height: 100%;
+  background-color: var(--background);
+  background-image:
+    radial-gradient(1200px 600px at 80% 10%, rgb(90 64 190 / 0.18), transparent 60%),
+    radial-gradient(900px 500px at 15% 15%, rgb(63 63 70 / 0.25), transparent 55%);
+  background-attachment: fixed;
+  overscroll-behavior-y: none;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

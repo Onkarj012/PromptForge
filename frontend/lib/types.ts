@@ -8,11 +8,22 @@ export type RefineRequest = {
 }
 
 export type RefineResponse = {
-    run_id: number;
+    run_id: string;
     final_prompt: string;
     final_score?: number;
     total_cost?: number;
     iterations: number;
+    iterations_detail?: Array<{
+        iteration: number;
+        prompt: string;
+        critique?: {
+            score?: number;
+            strengths?: string[];
+            weaknesses?: string[];
+            suggestions?: string[];
+        };
+        score?: number;
+    }>;
 };
 
 export interface Iteration {

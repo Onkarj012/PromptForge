@@ -1,10 +1,10 @@
 from typing import TypedDict, Optional, Dict, Any, List
 
-class Critique(TypedDict):
+class Critique(TypedDict, total=False):
     score : int
-    strength : str
-    weakness : str
-    suggestion : str
+    strengths : List[str]
+    weaknesses : List[str]
+    suggestions : List[str]
 
 class AgentState(TypedDict):
     original_prompt : str
