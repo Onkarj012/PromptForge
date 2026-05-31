@@ -191,13 +191,25 @@ html {
   animation: scale-in 0.7s cubic-bezier(0.44, 0, 0.56, 1) both;
 }
 
+/* Pipeline "prompt flowing" dot */
+@keyframes flow {
+  0% { left: 0; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+.flow-dot {
+  animation: flow 1.4s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
   .animate-blink,
   .animate-float,
-  .animate-scale-in {
+  .animate-scale-in,
+  .flow-dot {
     animation: none;
   }
 }
