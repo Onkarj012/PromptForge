@@ -39,6 +39,25 @@ const TIERS = [
   { name: "Team", price: "$69", note: "Unlimited + CI/CD + API", featured: false },
 ];
 
+const FAQS = [
+  {
+    q: "How is this better than just asking Claude to improve my prompt?",
+    a: "A multi-agent creator/critic loop catches what a single pass misses, scores quality objectively, formats for your target tool, and keeps a history — instead of manual back-and-forth.",
+  },
+  {
+    q: "Which tools does it format prompts for?",
+    a: "Cursor, Bolt, v0, Claude, and a generic mode. Each gets structure tuned to how that tool consumes prompts.",
+  },
+  {
+    q: "What is Bench Mode?",
+    a: "Run one prompt across multiple models and compare quality, latency, tokens, cost, and quality-per-dollar — so you can pick the cheapest model that still performs.",
+  },
+  {
+    q: "Do I need an account to try it?",
+    a: "No — the Forge studio is open. Accounts, usage limits, and billing arrive with the paid tiers.",
+  },
+];
+
 const primaryBtn =
   "inline-flex items-center gap-2 rounded-[10px] bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-transform duration-300 [transition-timing-function:cubic-bezier(0.44,0,0.56,1)] hover:scale-[1.05]";
 const secondaryBtn =
@@ -141,6 +160,36 @@ export default function HomePage() {
           </section>
         </Reveal>
 
+        {/* Before / After */}
+        <Reveal>
+          <section className="py-16">
+            <p className="font-eyebrow text-xs text-foreground/60">Before / After</p>
+            <h2 className="font-display mt-3 text-4xl sm:text-5xl">See the difference.</h2>
+            <div className="mt-10 grid gap-5 md:grid-cols-2">
+              <div className="rounded-[10px] border border-dashed border-white/15 bg-card p-6">
+                <p className="font-eyebrow text-xs text-muted-foreground">Raw prompt</p>
+                <p className="mt-4 text-sm text-foreground/60">
+                  &ldquo;build me a saas with auth and billing&rdquo;
+                </p>
+                <p className="mt-6 text-xs text-foreground/40">
+                  Vague scope, no stack, no constraints, no acceptance criteria — the tool guesses.
+                </p>
+              </div>
+              <div className="relative rounded-[10px] border border-primary bg-card p-6">
+                <Corners />
+                <p className="font-eyebrow text-xs text-primary">PromptForge prompt</p>
+                <p className="mt-4 text-sm text-foreground/80">
+                  Objective, Next.js + Supabase + Stripe stack, ordered build plan, file structure,
+                  constraints, and verifiable acceptance criteria — formatted for Cursor.
+                </p>
+                <p className="mt-6 text-xs text-foreground/50">
+                  Structured, tool-specific, and scored — the tool builds the right thing first try.
+                </p>
+              </div>
+            </div>
+          </section>
+        </Reveal>
+
         {/* Features */}
         <Reveal>
           <section className="py-16">
@@ -177,6 +226,20 @@ export default function HomePage() {
                   <Link href="/refine" className={cn("mt-6 w-full justify-center", t.featured ? primaryBtn : secondaryBtn)}>
                     {t.featured ? "Start Pro" : `Choose ${t.name}`}
                   </Link>
+                </div>
+              ))}
+            </div>
+          </section>
+        </Reveal>
+        {/* FAQ */}
+        <Reveal>
+          <section className="py-16">
+            <h2 className="font-display text-4xl sm:text-5xl">Frequently asked.</h2>
+            <div className="mt-10 grid gap-3">
+              {FAQS.map((f) => (
+                <div key={f.q} className="rounded-[10px] border border-dashed border-white/15 bg-card p-6">
+                  <p className="text-base font-medium">{f.q}</p>
+                  <p className="mt-2 text-sm text-foreground/70">{f.a}</p>
                 </div>
               ))}
             </div>

@@ -1,6 +1,7 @@
 import json
 from app.agents.state import AgentState
 from app.agents.llm import get_openrouter_llm
+from app.agents.cost import accumulate
 
 
 async def critic_node(state: AgentState) -> AgentState:
@@ -50,6 +51,7 @@ JSON schema:
 
     response = await llm.ainvoke(prompt)
     raw = response.content.strip()
+    accumulate(state, response, state["critic_model"])
 
     try:
         critique = json.loads(raw)

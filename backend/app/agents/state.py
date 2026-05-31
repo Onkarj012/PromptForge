@@ -22,3 +22,6 @@ class AgentState(TypedDict):
     
     history : List[Dict[str, Any]]
     metadata : Dict[str, Any]
+
+    usage : Dict[str, Any]
+    iter_usage : Dict[str, Any]

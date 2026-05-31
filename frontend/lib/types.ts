@@ -35,3 +35,38 @@ export interface Iteration {
     critique: string;
     score: number;
 }
+
+export type BenchRequest = {
+    prompt: string;
+    models: string[];
+    critic_model?: string;
+};
+
+export type BenchResult = {
+    model: string;
+    output?: string;
+    score?: number;
+    latency_ms?: number;
+    tokens?: number;
+    cost?: number;
+    quality_per_dollar?: number | null;
+    error?: string;
+};
+
+export type BenchResponse = {
+    run_id: string;
+    results: BenchResult[];
+};
+
+export type RunSummary = {
+    run_id: string;
+    mode: string;
+    creator_model?: string;
+    critic_model?: string;
+    original_prompt?: string;
+    final_score?: number;
+    total_cost?: number;
+    total_tokens?: number;
+    max_iterations?: number;
+    created_at?: string;
+};

@@ -229,23 +229,23 @@ const MODELS: Model[] = [
 ];
 
 const PROVIDER_STYLES: Record<string, { badge: string }> = {
-  OpenAI: { badge: "text-zinc-400" },
-  Anthropic: { badge: "text-zinc-400" },
-  Google: { badge: "text-zinc-400" },
-  DeepSeek: { badge: "text-zinc-400" },
-  "Moonshot AI": { badge: "text-zinc-400" },
-  Meta: { badge: "text-zinc-400" },
-  Mistral: { badge: "text-zinc-400" },
-  xAI: { badge: "text-zinc-400" },
-  Zhipu: { badge: "text-zinc-400" },
+  OpenAI: { badge: "text-muted-foreground" },
+  Anthropic: { badge: "text-muted-foreground" },
+  Google: { badge: "text-muted-foreground" },
+  DeepSeek: { badge: "text-muted-foreground" },
+  "Moonshot AI": { badge: "text-muted-foreground" },
+  Meta: { badge: "text-muted-foreground" },
+  Mistral: { badge: "text-muted-foreground" },
+  xAI: { badge: "text-muted-foreground" },
+  Zhipu: { badge: "text-muted-foreground" },
 };
 
 const CAPABILITY_STYLES: Record<string, string> = {
   reasoning: "bg-primary/10 text-primary border-primary/20",
   vision: "bg-sky-500/10 text-sky-200 border-sky-500/20",
   fast: "bg-amber-500/10 text-amber-200 border-amber-500/20",
-  context: "bg-zinc-800/70 text-zinc-200 border-zinc-700/60",
-  open: "bg-zinc-900/70 text-zinc-300 border-zinc-700/60",
+  context: "bg-white/[0.06]/70 text-foreground border-white/15/60",
+  open: "bg-white/[0.03] text-foreground/70 border-white/15/60",
 };
 
 type ProviderIconComponent = React.ComponentType<{
@@ -269,7 +269,7 @@ function getProviderIcon(provider: string): ProviderIconComponent {
 function getProviderStyle(provider: string) {
   return (
     PROVIDER_STYLES[provider] ?? {
-      badge: "text-zinc-400",
+      badge: "text-muted-foreground",
     }
   );
 }
@@ -284,7 +284,7 @@ function ProviderMark({
   const Icon = getProviderIcon(provider);
   return (
     <div
-      className={cn("flex items-center justify-center text-zinc-100")}
+      className={cn("flex items-center justify-center text-foreground")}
       style={{ width: size, height: size }}
     >
       <Icon
@@ -340,7 +340,7 @@ export function ModelSelector({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs uppercase tracking-[0.3em] text-zinc-400">
+      <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
         {label}
       </span>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -348,7 +348,7 @@ export function ModelSelector({
           render={
             <Button
               variant="outline"
-              className="h-12 w-full justify-between border-zinc-800/70 bg-zinc-950/60 px-3 text-left"
+              className="h-12 w-full justify-between border-white/10 bg-black/40 px-3 text-left"
             />
           }
         >
@@ -358,33 +358,33 @@ export function ModelSelector({
                 <>
                   <ProviderMark provider={selectedModel.provider} size={28} />
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-zinc-100">
+                    <div className="truncate text-sm font-medium text-foreground">
                       {selectedModel.name}
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+                    <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                       {selectedModel.provider}
                     </div>
                   </div>
                 </>
               ) : (
-                <span className="text-sm text-zinc-400">Select a model...</span>
+                <span className="text-sm text-muted-foreground">Select a model...</span>
               )}
             </div>
-            <ChevronsUpDown className="h-4 w-4 text-zinc-400" />
+            <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
           </div>
         </DialogTrigger>
 
         <DialogContent
           size="lg"
-          className="h-[82vh] max-h-[860px] border border-zinc-800/80 bg-zinc-950 p-0 overflow-hidden"
+          className="h-[82vh] max-h-[860px] border border-white/10/80 bg-background p-0 overflow-hidden"
         >
           <div className="flex h-full min-h-0 flex-col">
-            <div className="flex items-start justify-between gap-4 border-b border-zinc-800/70 px-6 py-4">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
               <DialogHeader>
-                <DialogTitle className="text-sm font-semibold text-zinc-100">
+                <DialogTitle className="text-sm font-semibold text-foreground">
                   Model Library
                 </DialogTitle>
-                <DialogDescription className="text-xs text-zinc-400">
+                <DialogDescription className="text-xs text-muted-foreground">
                   Filter by provider, search by capability, then pick the best
                   model for this run.
                 </DialogDescription>
@@ -394,7 +394,7 @@ export function ModelSelector({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+                    className="h-8 w-8 text-muted-foreground hover:bg-white/[0.06]/60 hover:text-foreground"
                   />
                 }
               >
@@ -403,9 +403,9 @@ export function ModelSelector({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-              <aside className="flex w-full flex-col border-b border-zinc-800/70 bg-zinc-950/80 md:w-64 md:border-b-0 md:border-r md:min-h-0">
+              <aside className="flex w-full flex-col border-b border-white/10 bg-background/80 md:w-64 md:border-b-0 md:border-r md:min-h-0">
                 <div className="px-4 pt-4">
-                  <p className="text-sm uppercase tracking-[0.25em] text-zinc-300">
+                  <p className="text-sm uppercase tracking-[0.25em] text-foreground/70">
                     Providers
                   </p>
                 </div>
@@ -414,21 +414,21 @@ export function ModelSelector({
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full justify-between text-sm font-semibold text-zinc-200",
+                        "w-full justify-between text-sm font-semibold text-foreground",
                         !selectedProvider &&
-                          "bg-zinc-900/70 text-zinc-100 hover:bg-zinc-900/90",
+                          "bg-white/[0.03] text-foreground hover:bg-card/90",
                       )}
                       onClick={() => setSelectedProvider(null)}
                     >
                       <span className="flex items-center gap-2">
                         <Star
-                          className="h-3 w-3 text-zinc-100"
+                          className="h-3 w-3 text-foreground"
                           fill="white"
                           stroke="white"
                         />
                         All Models
                       </span>
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-muted-foreground">
                         {MODELS.length}
                       </span>
                     </Button>
@@ -439,9 +439,9 @@ export function ModelSelector({
                           key={provider}
                           variant="ghost"
                           className={cn(
-                            "w-full justify-between text-sm font-semibold text-zinc-200",
+                            "w-full justify-between text-sm font-semibold text-foreground",
                             selectedProvider === provider &&
-                              "bg-zinc-900/70 text-zinc-100 hover:bg-zinc-900/90",
+                              "bg-white/[0.03] text-foreground hover:bg-card/90",
                           )}
                           onClick={() => setSelectedProvider(provider)}
                         >
@@ -464,12 +464,12 @@ export function ModelSelector({
               </aside>
 
               <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <div className="border-b border-zinc-800/70 p-4">
+                <div className="border-b border-white/10 p-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Search models, providers, capabilities..."
-                      className="h-10 border-zinc-800/70 bg-zinc-950/60 pl-9"
+                      className="h-10 border-white/10 bg-black/40 pl-9"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                     />
@@ -489,11 +489,11 @@ export function ModelSelector({
                             setOpen(false);
                           }}
                           className={cn(
-                            "group flex h-full min-w-0 flex-col gap-3 overflow-hidden rounded-none border p-4 text-left transition",
+                            "group flex h-full min-w-0 flex-col gap-3 overflow-hidden rounded-[10px] border p-4 text-left transition",
                             "hover:border-primary/40 hover:bg-primary/5",
                             isSelected
                               ? "border-primary/50 bg-primary/10"
-                              : "border-zinc-800/70 bg-zinc-950/60",
+                              : "border-white/10 bg-black/40",
                           )}
                         >
                           <div className="flex items-start justify-between">
@@ -504,30 +504,30 @@ export function ModelSelector({
                               />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <h4 className="truncate text-sm font-semibold text-zinc-100">
+                                  <h4 className="truncate text-sm font-semibold text-foreground">
                                     {model.name}
                                   </h4>
                                   {model.capabilities.includes("fast") && (
                                     <Zap className="h-3.5 w-3.5 text-amber-300" />
                                   )}
                                 </div>
-                                <p className="text-xs text-zinc-400">
+                                <p className="text-xs text-muted-foreground">
                                   {model.provider}
                                 </p>
                               </div>
                             </div>
                             {isSelected && (
-                              <div className="flex h-5 w-5 items-center justify-center rounded-none border border-primary/60 bg-primary/20">
+                              <div className="flex h-5 w-5 items-center justify-center rounded-[10px] border border-primary/60 bg-primary/20">
                                 <Check className="h-3 w-3 text-primary" />
                               </div>
                             )}
                           </div>
 
-                          <p className="line-clamp-2 text-xs text-zinc-300">
+                          <p className="line-clamp-2 text-xs text-foreground/70">
                             {model.description}
                           </p>
 
-                          <div className="mt-auto flex items-center justify-between border-t border-zinc-800/60 pt-3">
+                          <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-3">
                             <div className="flex flex-wrap gap-1.5">
                               {model.capabilities.map((capability, index) => (
                                 <Badge
@@ -536,14 +536,14 @@ export function ModelSelector({
                                   className={cn(
                                     "h-5 border px-1.5 text-[10px] font-normal",
                                     CAPABILITY_STYLES[capability] ??
-                                      "bg-zinc-900/60 text-zinc-300 border-zinc-700/60",
+                                      "bg-white/[0.03] text-foreground/70 border-white/15/60",
                                   )}
                                 >
                                   {capability}
                                 </Badge>
                               ))}
                             </div>
-                            <span className="text-[10px] font-mono text-zinc-400">
+                            <span className="text-[10px] font-mono text-muted-foreground">
                               ${model.inputPrice}/{model.outputPrice}
                             </span>
                           </div>
@@ -552,7 +552,7 @@ export function ModelSelector({
                     })}
 
                     {filteredModels.length === 0 && (
-                      <div className="col-span-full flex flex-col items-center justify-center gap-2 py-12 text-center text-zinc-400">
+                      <div className="col-span-full flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
                         <Search className="h-8 w-8 opacity-30" />
                         <p className="text-sm">No models match that search.</p>
                         <Button
@@ -568,7 +568,7 @@ export function ModelSelector({
                   </div>
                 </ScrollArea>
 
-                <div className="border-t border-zinc-800/70 bg-zinc-950/80 px-4 py-2 text-center text-[10px] text-zinc-400">
+                <div className="border-t border-white/10 bg-background/80 px-4 py-2 text-center text-[10px] text-muted-foreground">
                   Prices represent input/output per 1M tokens. Availability
                   depends on OpenRouter support.
                 </div>

@@ -1,6 +1,7 @@
 from app.agents.state import AgentState
 from app.agents.llm import get_openrouter_llm
 from app.agents.formatting import build_context_block
+from app.agents.cost import accumulate
 
 
 async def creator_node(state: AgentState) -> AgentState:
@@ -46,4 +47,5 @@ Use the structure and markdown sections described in "Output Formatting" above s
     response = await llm.ainvoke(prompt)
 
     state["current_prompt"] = response.content
+    accumulate(state, response, state["creator_model"])
     return state

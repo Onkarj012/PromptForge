@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, Integer, DateTime
+from sqlalchemy import Column, Text, Integer, DateTime, Float
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
@@ -32,6 +32,11 @@ class PromptRun(Base):
     creator_model = Column(Text, nullable=True)
     critic_model = Column(Text, nullable=True)
     max_iterations = Column(Integer, nullable=False)
+    original_prompt = Column(Text, nullable=True)
+    final_prompt = Column(Text, nullable=True)
+    final_score = Column(Integer, nullable=True)
+    total_cost = Column(Float, nullable=True)
+    total_tokens = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -48,3 +53,31 @@ class PromptIteration(Base):
     critique = Column(JSONB, nullable=True)
     score = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BenchmarkRun(Base):
+    """
+    One Bench Mode comparison: a prompt run across multiple models.
+    """
+    __tablename__ = "benchmark_runs"
+
+    id = Column(Text, primary_key=True)
+    prompt = Column(Text, nullable=False)
+    critic_model = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BenchmarkResult(Base):
+    """
+    One model's result within a benchmark run.
+    """
+    __tablename__ = "benchmark_results"
+
+    id = Column(Text, primary_key=True)
+    run_id = Column(Text, nullable=False)
+    model = Column(Text, nullable=False)
+    score = Column(Integer, nullable=True)
+    latency_ms = Column(Integer, nullable=True)
+    tokens = Column(Integer, nullable=True)
+    cost = Column(Float, nullable=True)
+    output = Column(Text, nullable=True)

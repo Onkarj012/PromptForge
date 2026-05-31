@@ -205,12 +205,23 @@ export default function Page() {
               Prompt Studio
             </span>
           </Link>
-          <div className="hidden items-center gap-2 text-xs text-foreground/70 sm:flex">
-            <Badge className="border border-dashed border-white/10 bg-white/[0.03] text-foreground">
-              {statusLabel}
-            </Badge>
-            <span>Agentic refinement workspace</span>
-          </div>
+          <nav className="hidden items-center gap-1 rounded-[10px] border border-dashed border-white/10 p-1 sm:flex">
+            <span className="font-eyebrow rounded-[7px] bg-primary px-3 py-1.5 text-[11px] text-primary-foreground">
+              Forge
+            </span>
+            <Link
+              href="/bench"
+              className="font-eyebrow rounded-[7px] px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              Bench
+            </Link>
+            <Link
+              href="/history"
+              className="font-eyebrow rounded-[7px] px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              History
+            </Link>
+          </nav>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -392,7 +403,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="grid gap-4 rounded-none border border-zinc-800/70 bg-zinc-900/40 p-4">
+              <div className="grid gap-4 rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
                 <div className="grid gap-2">
                   <Label>Target Tool</Label>
                   <div className="flex flex-wrap gap-2">
@@ -438,7 +449,7 @@ export default function Page() {
                   <Input
                     id="stack"
                     placeholder="e.g., Next.js + Supabase + Stripe"
-                    className="mt-2 border-zinc-800/70 bg-zinc-950/60"
+                    className="mt-2 border-white/10 bg-black/40"
                     value={stack}
                     onChange={(e) => setStack(e.target.value)}
                     disabled={isLoading}
