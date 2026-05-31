@@ -1,43 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import {
-  AlertCircle,
-  Check,
-  Copy,
-  Gauge,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, Check, Copy, Loader2, Plus } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { ModeNav } from "@/components/mode-nav";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ModelSelector } from "@/components/model-selector";
 import { IterationCard } from "@/components/iteration-card";
 import { useRefinement } from "@/lib/hooks/useRefinement";
-import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { Reveal } from "@/components/reveal";
+import { cn } from "@/lib/utils";
 
-const TONES = [
-  "Analytical",
-  "Cinematic",
-  "Concise",
-  "Direct",
-  "Persuasive",
-  "Playful",
-  "Technical",
-];
-
+const TONES = ["Analytical", "Cinematic", "Concise", "Direct", "Persuasive", "Playful", "Technical"];
 const TOOLS = [
   { value: "cursor", label: "Cursor" },
   { value: "bolt", label: "Bolt" },
@@ -45,7 +23,6 @@ const TOOLS = [
   { value: "claude", label: "Claude" },
   { value: "generic", label: "Generic" },
 ];
-
 const PROJECT_TYPES = [
   { value: "saas", label: "SaaS" },
   { value: "api", label: "API" },
@@ -53,27 +30,25 @@ const PROJECT_TYPES = [
   { value: "cli", label: "CLI" },
   { value: "mobile_app", label: "Mobile App" },
 ];
-
 const PROFILES = {
-  quick: {
-    label: "Quick",
-    description: "2 iterations",
-    iterations: 2,
-  },
-  balanced: {
-    label: "Balanced",
-    description: "3 iterations",
-    iterations: 3,
-  },
-  deep: {
-    label: "Deep",
-    description: "5 iterations",
-    iterations: 5,
-  },
+  quick: { label: "Quick", iterations: 2 },
+  balanced: { label: "Balanced", iterations: 3 },
+  deep: { label: "Deep", iterations: 5 },
 } as const;
-
 type ProfileKey = keyof typeof PROFILES;
-type ProfileState = ProfileKey | "custom";
+
+function Corners() {
+  return (
+    <>
+      <Plus className="pointer-events-none absolute -left-[7px] -top-[7px] h-3.5 w-3.5 text-primary/70" />
+      <Plus className="pointer-events-none absolute -bottom-[7px] -right-[7px] h-3.5 w-3.5 text-primary/70" />
+    </>
+  );
+}
+
+function Pill({ active, ...props }: { active: boolean } & React.ComponentProps<typeof Button>) {
+  return <Button size="sm" variant={active ? "default" : "outline"} {...props} />;
+}
 
 export default function Page() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -86,86 +61,43 @@ export default function Page() {
   const [targetTool, setTargetTool] = useState("cursor");
   const [projectType, setProjectType] = useState("");
   const [stack, setStack] = useState("");
-  const [profile, setProfile] = useState<ProfileState>("balanced");
-  const [maxIterations, setMaxIterations] = useState<number>(
-    PROFILES.balanced.iterations,
-  );
-  const [creatorModel, setCreatorModel] = useState(
-    "anthropic/claude-3.5-sonnet",
-  );
+  const [profile, setProfile] = useState<ProfileKey>("balanced");
+  const [creatorModel, setCreatorModel] = useState("anthropic/claude-3.5-sonnet");
   const [criticModel, setCriticModel] = useState("openai/gpt-4o-mini");
-
-  const { isLoading, error, iterations, response, startRefinement, reset } =
-    useRefinement();
-
   const [isFinalCopied, setIsFinalCopied] = useState(false);
 
-  const handleFinalCopy = async () => {
-    if (response?.final_prompt) {
-      await navigator.clipboard.writeText(response.final_prompt);
-      setIsFinalCopied(true);
-      setTimeout(() => setIsFinalCopied(false), 2000);
-    }
-  };
-
-  const handleInput = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    }
-  };
+  const { isLoading, error, iterations, response, startRefinement, reset } = useRefinement();
 
   useEffect(() => {
-    handleInput();
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = "auto";
+      ta.style.height = `${ta.scrollHeight}px`;
+    }
   }, [userInput]);
 
   const buildPrompt = () => {
-    const sections = [userInput.trim()];
-    if (goal.trim()) {
-      sections.push(`Goal: ${goal.trim()}`);
-    }
-    if (audience.trim()) {
-      sections.push(`Audience: ${audience.trim()}`);
-    }
-    if (tone.trim()) {
-      sections.push(`Tone: ${tone.trim()}`);
-    }
-    if (constraints.trim()) {
-      sections.push(`Constraints: ${constraints.trim()}`);
-    }
-    return sections.filter(Boolean).join("\n\n");
+    const parts = [userInput.trim()];
+    if (goal.trim()) parts.push(`Goal: ${goal.trim()}`);
+    if (audience.trim()) parts.push(`Audience: ${audience.trim()}`);
+    if (tone.trim()) parts.push(`Tone: ${tone.trim()}`);
+    if (constraints.trim()) parts.push(`Constraints: ${constraints.trim()}`);
+    return parts.filter(Boolean).join("\n\n");
   };
 
-  const builtPrompt = buildPrompt();
-  const wordCount = builtPrompt.trim()
-    ? builtPrompt.trim().split(/\s+/).length
-    : 0;
-  const charCount = builtPrompt.length;
-
-  const profileLabel =
-    profile === "custom" ? "Custom" : PROFILES[profile].label;
-
   const handleSubmit = async () => {
-    if (!userInput.trim() || userInput.length < 10) {
-      return;
-    }
-
-    try {
-      await startRefinement({
-        prompt: builtPrompt,
-        domain: domain || undefined,
-        mode: "user_defined",
-        creator_model: creatorModel,
-        critic_model: criticModel,
-        iterations: maxIterations,
-        target_tool: targetTool,
-        project_type: projectType || undefined,
-        stack: stack || undefined,
-      });
-    } catch (error) {
-      console.error("Refinement failed:", error);
-    }
+    if (userInput.trim().length < 10) return;
+    await startRefinement({
+      prompt: buildPrompt(),
+      domain: domain || undefined,
+      mode: "user_defined",
+      creator_model: creatorModel,
+      critic_model: criticModel,
+      iterations: PROFILES[profile].iterations,
+      target_tool: targetTool,
+      project_type: projectType || undefined,
+      stack: stack || undefined,
+    });
   };
 
   const handleReset = () => {
@@ -180,461 +112,206 @@ export default function Page() {
     setProjectType("");
     setStack("");
     setProfile("balanced");
-    setMaxIterations(PROFILES.balanced.iterations);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
   };
 
-  const applyProfile = (nextProfile: ProfileKey) => {
-    setProfile(nextProfile);
-    setMaxIterations(PROFILES[nextProfile].iterations);
+  const handleFinalCopy = async () => {
+    if (!response?.final_prompt) return;
+    await navigator.clipboard.writeText(response.final_prompt);
+    setIsFinalCopied(true);
+    setTimeout(() => setIsFinalCopied(false), 2000);
   };
 
-  const statusLabel = isLoading ? "Running" : response ? "Complete" : "Idle";
+  const stats = [
+    { label: "Final Score", value: response?.final_score != null ? `${response.final_score}/10` : "—" },
+    { label: "Cost", value: response?.total_cost != null ? `$${response.total_cost.toFixed(4)}` : "—" },
+    { label: "Iterations", value: response?.iterations ?? "—" },
+  ];
 
   return (
-    <main className="relative min-h-screen w-screen overflow-hidden bg-background bg-blueprint text-foreground motion-safe:animate-in motion-safe:fade-in">
-      <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-white/10 bg-background/80 px-6 py-4 backdrop-blur">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="font-display text-xl">
-              PromptForge<span className="text-primary">.</span>
-            </span>
-            <span className="font-eyebrow text-[10px] text-muted-foreground">
-              Prompt Studio
-            </span>
-          </Link>
-          <nav className="hidden items-center gap-1 rounded-[10px] border border-dashed border-white/10 p-1 sm:flex">
-            <span className="font-eyebrow rounded-[7px] bg-primary px-3 py-1.5 text-[11px] text-primary-foreground">
-              Forge
-            </span>
-            <Link
-              href="/bench"
-              className="font-eyebrow rounded-[7px] px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              Bench
-            </Link>
-            <Link
-              href="/history"
-              className="font-eyebrow rounded-[7px] px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              History
-            </Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
+    <main className="min-h-screen bg-background bg-blueprint text-foreground">
+      <ModeNav />
+      <div className="mx-auto max-w-4xl px-6 py-12">
+        <Reveal>
+          <p className="font-eyebrow text-xs text-foreground/60">Forge Mode</p>
+          <h1 className="font-display mt-2 text-5xl">Refine your prompt.</h1>
+          <p className="mt-4 max-w-xl text-sm text-foreground/70">
+            Describe what you want to build. A creator/critic loop generates, evaluates, and
+            iterates it into a tool-ready prompt.
+          </p>
+        </Reveal>
+
+        {/* Composer */}
+        <Reveal>
+          <div className="relative mt-10 rounded-[10px] border border-dashed border-white/15 bg-card p-6">
+            <Corners />
+            <Label htmlFor="prompt" className="font-eyebrow text-xs text-muted-foreground">
+              Your prompt
+            </Label>
+            <Textarea
+              id="prompt"
+              ref={textareaRef}
+              placeholder="e.g. Build a SaaS landing page with Next.js, Supabase auth, and Stripe billing."
+              className="mt-3 min-h-[120px] resize-none overflow-hidden border-white/10 bg-black/40 text-base"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
               disabled={isLoading}
-            >
-              New Session
-            </Button>
-          </div>
-        </header>
+            />
 
-        <ResizablePanelGroup
-          orientation="horizontal"
-          className="flex-1 border-t border-white/10"
-        >
-          <ResizablePanel defaultSize={48} minSize={32}>
-            <div className="flex h-full flex-col gap-6 overflow-auto p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
-              <div className="flex items-start justify-between gap-4">
+            <div className="mt-6">
+              <p className="font-eyebrow mb-2 text-xs text-muted-foreground">Target tool</p>
+              <div className="flex flex-wrap gap-2">
+                {TOOLS.map((t) => (
+                  <Pill key={t.value} active={targetTool === t.value} onClick={() => setTargetTool(t.value)} disabled={isLoading}>
+                    {t.label}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="font-eyebrow mb-2 text-xs text-muted-foreground">Depth</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(PROFILES) as ProfileKey[]).map((k) => (
+                  <Pill key={k} active={profile === k} onClick={() => setProfile(k)} disabled={isLoading}>
+                    {PROFILES[k].label} · {PROFILES[k].iterations}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <ModelSelector value={creatorModel} onValueChange={setCreatorModel} label="Creator Model" />
+              <ModelSelector value={criticModel} onValueChange={setCriticModel} label="Critic Model" />
+            </div>
+
+            <details className="group mt-6 border-t border-dashed border-white/10 pt-5">
+              <summary className="font-eyebrow cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
+                + Project context (optional)
+              </summary>
+              <div className="mt-4 grid gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                    Input Layer
-                  </p>
-                  <h2 className="font-display text-2xl text-foreground">
-                    Prompt Studio
-                  </h2>
-                </div>
-                {response && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReset}
-                    disabled={isLoading}
-                  >
-                    New Prompt
-                  </Button>
-                )}
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    Words
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-foreground">
-                    {wordCount}
-                  </p>
-                </div>
-                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    Characters
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-foreground">
-                    {charCount}
-                  </p>
-                </div>
-                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    Profile
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-foreground">
-                    {profileLabel}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-4 rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="prompt">Your Prompt</Label>
-                  <span className="text-xs text-muted-foreground">Min 10 chars</span>
-                </div>
-                <Textarea
-                  id="prompt"
-                  ref={textareaRef}
-                  placeholder="Describe what you want to create..."
-                  className="min-h-[140px] resize-none overflow-hidden border-white/10 bg-black/40"
-                  onInput={handleInput}
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  disabled={isLoading}
-                />
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="domain">Domain (Optional)</Label>
-                    <Input
-                      id="domain"
-                      placeholder="e.g., product, code, story"
-                      className="mt-2 border-white/10 bg-black/40"
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="iterations">Max Iterations</Label>
-                    <Input
-                      id="iterations"
-                      type="number"
-                      min={1}
-                      max={5}
-                      className="mt-2 border-white/10 bg-black/40"
-                      value={maxIterations}
-                      onChange={(e) => {
-                        const nextValue = parseInt(e.target.value, 10);
-                        const safeValue = Number.isNaN(nextValue)
-                          ? PROFILES.balanced.iterations
-                          : nextValue;
-                        const clampedValue = Math.min(
-                          5,
-                          Math.max(1, safeValue),
-                        );
-                        setMaxIterations(clampedValue);
-                        const matchedProfile = (
-                          Object.keys(PROFILES) as ProfileKey[]
-                        ).find(
-                          (key) => PROFILES[key].iterations === clampedValue,
-                        );
-                        setProfile(matchedProfile ?? "custom");
-                      }}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3">
-                  <div>
-                    <Label htmlFor="goal">Goal (Optional)</Label>
-                    <Input
-                      id="goal"
-                      placeholder="Outcome you want from the refined prompt"
-                      className="mt-2 border-white/10 bg-black/40"
-                      value={goal}
-                      onChange={(e) => setGoal(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="audience">Audience (Optional)</Label>
-                    <Input
-                      id="audience"
-                      placeholder="Who the output is for"
-                      className="mt-2 border-white/10 bg-black/40"
-                      value={audience}
-                      onChange={(e) => setAudience(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="constraints">Constraints (Optional)</Label>
-                    <Textarea
-                      id="constraints"
-                      placeholder="Formatting, structure, exclusions"
-                      className="mt-2 min-h-[90px] resize-none border-white/10 bg-black/40"
-                      value={constraints}
-                      onChange={(e) => setConstraints(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Tone (Optional)</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {TONES.map((toneOption) => (
-                      <Button
-                        key={toneOption}
-                        type="button"
-                        variant={tone === toneOption ? "default" : "outline"}
-                        size="sm"
-                        onClick={() =>
-                          setTone(tone === toneOption ? "" : toneOption)
-                        }
-                      >
-                        {toneOption}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
-                <div className="grid gap-2">
-                  <Label>Target Tool</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {TOOLS.map((t) => (
-                      <Button
-                        key={t.value}
-                        type="button"
-                        variant={targetTool === t.value ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTargetTool(t.value)}
-                        disabled={isLoading}
-                      >
-                        {t.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Project Type (Optional)</Label>
+                  <p className="font-eyebrow mb-2 text-xs text-muted-foreground">Project type</p>
                   <div className="flex flex-wrap gap-2">
                     {PROJECT_TYPES.map((p) => (
-                      <Button
-                        key={p.value}
-                        type="button"
-                        variant={
-                          projectType === p.value ? "default" : "outline"
-                        }
-                        size="sm"
-                        onClick={() =>
-                          setProjectType(projectType === p.value ? "" : p.value)
-                        }
-                        disabled={isLoading}
-                      >
+                      <Pill key={p.value} active={projectType === p.value} onClick={() => setProjectType(projectType === p.value ? "" : p.value)} disabled={isLoading}>
                         {p.label}
-                      </Button>
+                      </Pill>
                     ))}
                   </div>
                 </div>
-
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="stack">Stack</Label>
+                    <Input id="stack" placeholder="Next.js + Supabase + Stripe" className="mt-2 border-white/10 bg-black/40" value={stack} onChange={(e) => setStack(e.target.value)} disabled={isLoading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="domain">Domain</Label>
+                    <Input id="domain" placeholder="product, code, story" className="mt-2 border-white/10 bg-black/40" value={domain} onChange={(e) => setDomain(e.target.value)} disabled={isLoading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="goal">Goal</Label>
+                    <Input id="goal" placeholder="Desired outcome" className="mt-2 border-white/10 bg-black/40" value={goal} onChange={(e) => setGoal(e.target.value)} disabled={isLoading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="audience">Audience</Label>
+                    <Input id="audience" placeholder="Who the output is for" className="mt-2 border-white/10 bg-black/40" value={audience} onChange={(e) => setAudience(e.target.value)} disabled={isLoading} />
+                  </div>
+                </div>
                 <div>
-                  <Label htmlFor="stack">Stack (Optional)</Label>
-                  <Input
-                    id="stack"
-                    placeholder="e.g., Next.js + Supabase + Stripe"
-                    className="mt-2 border-white/10 bg-black/40"
-                    value={stack}
-                    onChange={(e) => setStack(e.target.value)}
-                    disabled={isLoading}
-                  />
+                  <Label htmlFor="constraints">Constraints</Label>
+                  <Textarea id="constraints" placeholder="Formatting, structure, exclusions" className="mt-2 min-h-[80px] resize-none border-white/10 bg-black/40" value={constraints} onChange={(e) => setConstraints(e.target.value)} disabled={isLoading} />
+                </div>
+                <div>
+                  <p className="font-eyebrow mb-2 text-xs text-muted-foreground">Tone</p>
+                  <div className="flex flex-wrap gap-2">
+                    {TONES.map((t) => (
+                      <Pill key={t} active={tone === t} onClick={() => setTone(tone === t ? "" : t)} disabled={isLoading}>
+                        {t}
+                      </Pill>
+                    ))}
+                  </div>
                 </div>
               </div>
+            </details>
 
-              <div className="grid gap-2">
-                <Label>Refinement Profile</Label>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {(Object.keys(PROFILES) as ProfileKey[]).map((key) => (
-                    <Button
-                      key={key}
-                      type="button"
-                      variant={profile === key ? "default" : "outline"}
-                      className="justify-between"
-                      onClick={() => applyProfile(key)}
-                    >
-                      <span>{PROFILES[key].label}</span>
-                      <span className="text-xs text-foreground/70">
-                        {PROFILES[key].description}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <ModelSelector
-                  value={creatorModel}
-                  onValueChange={setCreatorModel}
-                  label="Creator Model"
-                />
-
-                <ModelSelector
-                  value={criticModel}
-                  onValueChange={setCriticModel}
-                  label="Critic Model"
-                />
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={handleSubmit}
-                disabled={isLoading || userInput.length < 10}
-              >
+            <div className="mt-6 flex items-center gap-3">
+              <Button className="flex-1" onClick={handleSubmit} disabled={isLoading || userInput.trim().length < 10}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Refining...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Refining...
                   </>
                 ) : (
                   "Refine Prompt"
                 )}
               </Button>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+              {response && (
+                <Button variant="outline" onClick={handleReset} disabled={isLoading}>
+                  New
+                </Button>
               )}
+            </div>
 
-              <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                  <Gauge className="h-3 w-3 text-primary" />
-                  Prompt Checklist
-                </div>
-                <ul className="mt-3 space-y-2 text-xs text-foreground/70">
-                  <li>Specify the desired outcome and audience.</li>
-                  <li>Call out constraints, exclusions, and format needs.</li>
-                  <li>Keep the prompt focused on a single job-to-be-done.</li>
-                </ul>
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+        </Reveal>
+
+        {/* Results */}
+        {(iterations.length > 0 || isLoading) && (
+          <section className="mt-16">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="font-eyebrow text-xs text-foreground/60">Output</p>
+                <h2 className="font-display mt-2 text-3xl">Refinement timeline.</h2>
               </div>
             </div>
-          </ResizablePanel>
 
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={52} minSize={32}>
-            <div className="flex h-full flex-col gap-4 p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                    Output Layer
-                  </p>
-                  <h2 className="font-display text-2xl text-foreground">
-                    Refinement Timeline
-                  </h2>
-                </div>
-                <Badge className="border border-dashed border-white/10 bg-white/[0.03] text-foreground">
-                  {statusLabel}
-                </Badge>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    Final Score
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-foreground">
-                    {response?.final_score !== undefined
-                      ? `${response.final_score}/10`
-                      : "--"}
-                  </p>
-                </div>
-                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    Cost
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-foreground">
-                    {response?.total_cost !== undefined
-                      ? `$${response.total_cost.toFixed(4)}`
-                      : "--"}
-                  </p>
-                </div>
-                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    Iterations
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-foreground">
-                    {response?.iterations ?? "--"}
-                  </p>
-                </div>
-              </div>
-
-              {!isLoading && iterations.length === 0 && (
-                <div className="flex flex-1 flex-col items-center justify-center rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                  <p className="mt-4 text-sm text-foreground">
-                    Submit a prompt to see the refinement process.
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    The timeline will capture critique, revisions, and scoring.
-                  </p>
-                </div>
-              )}
-
-              {isLoading && (
-                <div className="space-y-4">
-                  <Skeleton className="h-[200px] w-full" />
-                  <Skeleton className="h-[200px] w-full" />
-                </div>
-              )}
-
-              {iterations.length > 0 && (
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-4 pr-4">
-                    {iterations.map((iteration) => (
-                      <IterationCard
-                        key={iteration.iteration}
-                        iteration={iteration}
-                      />
-                    ))}
-
-                    {response && (
-                      <div className="mt-6 rounded-[10px] border border-primary/20 bg-primary/5 p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-primary">
-                            Final Refined Prompt
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 hover:bg-primary/10"
-                            onClick={handleFinalCopy}
-                          >
-                            {isFinalCopied ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3 text-primary/70" />
-                            )}
-                          </Button>
-                        </div>
-                        <div className="prose dark:prose-invert max-w-none text-sm break-words motion-safe:animate-fade-in">
-                          <ReactMarkdown>{response.final_prompt}</ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
+            {response && (
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {stats.map((s) => (
+                  <div key={s.label} className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
+                    <p className="font-eyebrow text-[10px] text-muted-foreground">{s.label}</p>
+                    <p className="font-display mt-2 text-3xl text-foreground">{s.value}</p>
                   </div>
-                </ScrollArea>
-              )}
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+                ))}
+              </div>
+            )}
+
+            {isLoading && (
+              <div className="mt-8 space-y-4">
+                <div className="h-40 animate-pulse rounded-[10px] border border-dashed border-white/10 bg-white/[0.02]" />
+                <div className="h-40 animate-pulse rounded-[10px] border border-dashed border-white/10 bg-white/[0.02]" />
+              </div>
+            )}
+
+            {iterations.length > 0 && (
+              <div className="mt-8 space-y-4">
+                {iterations.map((iteration) => (
+                  <IterationCard key={iteration.iteration} iteration={iteration} />
+                ))}
+
+                {response && (
+                  <div className="relative rounded-[10px] border border-primary bg-card p-6">
+                    <Corners />
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="font-eyebrow text-xs text-primary">Final refined prompt</h3>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleFinalCopy}>
+                        {isFinalCopied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-foreground/70" />}
+                      </Button>
+                    </div>
+                    <div className={cn("prose prose-sm prose-invert max-w-none break-words")}>
+                      <ReactMarkdown>{response.final_prompt}</ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );

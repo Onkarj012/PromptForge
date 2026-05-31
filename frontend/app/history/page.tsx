@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
 import { ModeNav } from "@/components/mode-nav";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Reveal } from "@/components/reveal";
 import { listRuns } from "@/lib/api";
 import { RunSummary } from "@/lib/types";
 
@@ -32,62 +31,64 @@ const SAMPLE_RUNS: RunSummary[] = [
   },
 ];
 
+const shortName = (m?: string) => (m ? m.split("/")[1] ?? m : "—");
+
 export default function HistoryPage() {
-  const [runs, setRuns] = useState<RunSummary[] | null>(SAMPLE_RUNS);
-  const [error, setError] = useState<string | null>(null);
+  const [runs, setRuns] = useState<RunSummary[]>(SAMPLE_RUNS);
 
   useEffect(() => {
     listRuns()
       .then((r) => r.length > 0 && setRuns(r)) // keep demo data if backend empty/offline
-      .catch(() => setError(null));
+      .catch(() => {});
   }, []);
+
+  const avg = runs.length
+    ? (runs.reduce((s, r) => s + (r.final_score ?? 0), 0) / runs.length).toFixed(1)
+    : "—";
+  const spend = runs.reduce((s, r) => s + (r.total_cost ?? 0), 0);
+  const summary = [
+    { label: "Runs", value: runs.length },
+    { label: "Avg score", value: `${avg}/10` },
+    { label: "Total spend", value: `$${spend.toFixed(4)}` },
+  ];
 
   return (
     <main className="min-h-screen bg-background bg-blueprint text-foreground">
       <ModeNav />
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <p className="font-eyebrow text-xs text-foreground/60">History</p>
-        <h1 className="font-display mt-2 text-4xl">Your refinement runs.</h1>
+      <div className="mx-auto max-w-4xl px-6 py-12">
+        <Reveal>
+          <p className="font-eyebrow text-xs text-foreground/60">History</p>
+          <h1 className="font-display mt-2 text-5xl">Your refinement runs.</h1>
+        </Reveal>
 
-        {error && (
-          <Alert variant="destructive" className="mt-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {!runs && !error && (
-          <div className="mt-10 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+        <Reveal>
+          <div className="mt-10 grid gap-3 sm:grid-cols-3">
+            {summary.map((s) => (
+              <div key={s.label} className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
+                <p className="font-eyebrow text-[10px] text-muted-foreground">{s.label}</p>
+                <p className="font-display mt-2 text-3xl text-foreground">{s.value}</p>
+              </div>
+            ))}
           </div>
-        )}
+        </Reveal>
 
-        {runs && runs.length === 0 && (
-          <p className="mt-10 text-sm text-muted-foreground">
-            No runs yet. Forge a prompt to see it here.
-          </p>
-        )}
-
-        {runs && runs.length > 0 && (
+        {runs.length === 0 ? (
+          <p className="mt-10 text-sm text-muted-foreground">No runs yet. Forge a prompt to see it here.</p>
+        ) : (
           <div className="mt-8 grid gap-3">
             {runs.map((r) => (
-              <div
-                key={r.run_id}
-                className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4"
-              >
+              <div key={r.run_id} className="rounded-[10px] border border-dashed border-white/10 bg-card p-5 transition-colors hover:border-white/20">
                 <div className="flex items-start justify-between gap-4">
-                  <p className="line-clamp-2 text-sm text-foreground/80">
-                    {r.original_prompt ?? "(no prompt stored)"}
-                  </p>
-                  <span className="font-display shrink-0 text-2xl text-primary">
+                  <p className="line-clamp-2 text-sm text-foreground/85">{r.original_prompt ?? "(no prompt stored)"}</p>
+                  <span className={`font-display shrink-0 text-3xl ${(r.final_score ?? 0) >= 8 ? "text-primary" : "text-foreground"}`}>
                     {r.final_score != null ? `${r.final_score}/10` : "—"}
                   </span>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-4 font-eyebrow text-[10px] text-muted-foreground">
-                  <span>{r.creator_model}</span>
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 font-eyebrow text-[10px] text-muted-foreground">
+                  <span>{shortName(r.creator_model)}</span>
                   <span>${(r.total_cost ?? 0).toFixed(5)}</span>
                   <span>{r.total_tokens ?? 0} tokens</span>
-                  <span>{r.max_iterations} max iter</span>
+                  <span>{r.max_iterations} iter</span>
                   <span>{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</span>
                 </div>
               </div>
