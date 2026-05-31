@@ -26,6 +26,20 @@ class AgentState(TypedDict):
     assertions : Optional[List[Dict[str, Any]]]
     test_outputs : List[Dict[str, Any]]
     assertion_results : Dict[str, Any]
+
+    # Orchestrator (P2)
+    autonomy : str
+    orchestrator_model : Optional[str]
+    gated : bool
+    budget : Dict[str, Any]
+    steps_used : int
+    decisions : List[Dict[str, Any]]
+    next_action : Optional[str]
+    pending_action : Optional[str]
+    awaiting_approval : bool
+    resume_approved : bool
+    focus : Optional[str]
+    termination_reason : Optional[str]
     
     history : List[Dict[str, Any]]
     metadata : Dict[str, Any]

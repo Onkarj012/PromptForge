@@ -12,14 +12,23 @@ export type RefineRequest = {
     test_inputs?: string[];
     test_model?: string;
     assertions?: Assertion[];
+    autonomy?: string;
+    orchestrator_model?: string;
+    gated?: boolean;
+    max_steps?: number;
+    max_cost?: number;
 }
+
+export type ResumeRequest = { run_id: string; approved: boolean; edit?: string };
+
+export type Decision = { step?: number; action: string; reason?: string; focus?: string | null; confidence?: number | null };
 
 export type Assertion = { type: string; value?: string };
 export type TestOutput = { input?: string | null; output: string };
 export type AssertionResult = { passed: number; total: number; pass_rate: number };
 
 export type StreamEvent = {
-    event: "start" | "draft" | "critique" | "test" | "assert" | "iteration" | "done" | "error";
+    event: "start" | "draft" | "critique" | "test" | "assert" | "iteration" | "decision" | "gate" | "done" | "error";
     iteration?: number;
     prompt?: string;
     score?: number;
@@ -38,6 +47,12 @@ export type StreamEvent = {
     total?: number;
     pass_rate?: number;
     assertions?: AssertionResult;
+    decision?: Decision;
+    decisions?: Decision[];
+    step?: number;
+    run_id?: string;
+    pending_action?: string;
+    termination_reason?: string;
 };
 
 export type LiveIteration = {

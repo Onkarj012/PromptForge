@@ -6,6 +6,7 @@ import {
   RunSummary,
   StreamEvent,
   Baseline,
+  ResumeRequest,
 } from "./types";
 
 export const API_BASE =
@@ -50,7 +51,23 @@ export async function streamRefine(
   onEvent: (e: StreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/v1/prompt/refine/stream`, {
+  return streamSSE("/prompt/refine/stream", payload, onEvent, signal);
+}
+
+export async function resumeRefine(
+  payload: ResumeRequest,
+  onEvent: (e: StreamEvent) => void,
+): Promise<void> {
+  return streamSSE("/prompt/refine/resume", payload, onEvent);
+}
+
+async function streamSSE(
+  path: string,
+  payload: unknown,
+  onEvent: (e: StreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v1${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

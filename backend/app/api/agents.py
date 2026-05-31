@@ -11,6 +11,10 @@ from app.db.session import AsyncSessionLocal
 from app.db.models import PromptRun, PromptIteration, PromptMemory
 from app.agents.graph import build_prompt_graph
 
+CONFIG = {"recursion_limit": 80}
+# In-process store for gated/paused runs. Production: durable checkpointer/queue.
+_PAUSED: dict[str, dict] = {}
+
 
 class RefineRequest(BaseModel):
     prompt: str = Field(min_length=10, max_length=20000)
@@ -21,10 +25,23 @@ class RefineRequest(BaseModel):
     target_tool: str = "generic"
     project_type: str | None = None
     stack: str | None = None
-    steer: str | None = None  # one-tap chip / free-text steer for follow-up passes
-    test_inputs: list[str] | None = None  # scenarios to run the candidate prompt on
-    test_model: str | None = None  # model used to execute the candidate (defaults to critic)
-    assertions: list[dict] | None = None  # deterministic checks on the observed outputs
+    steer: str | None = None
+    test_inputs: list[str] | None = None
+    test_model: str | None = None
+    assertions: list[dict] | None = None
+    # Orchestrator (P2)
+    autonomy: str = "auto"  # bounded | auto | totally_auto
+    orchestrator_model: str = "openai/gpt-4o-mini"
+    gated: bool = False
+    max_steps: int = Field(default=6, ge=1, le=30)
+    max_tokens: int = Field(default=200_000, ge=1000)
+    max_cost: float = Field(default=1.0, ge=0.01)
+
+
+class ResumeRequest(BaseModel):
+    run_id: str
+    approved: bool
+    edit: str | None = None
 
 
 router = APIRouter(tags=["agents"])
@@ -56,6 +73,18 @@ def _initial_state(request: RefineRequest, run_id: str) -> dict:
         "assertions": request.assertions,
         "test_outputs": [],
         "assertion_results": {},
+        "autonomy": request.autonomy,
+        "orchestrator_model": request.orchestrator_model,
+        "gated": request.gated,
+        "budget": {"max_steps": request.max_steps, "max_tokens": request.max_tokens, "max_cost": request.max_cost},
+        "steps_used": 0,
+        "decisions": [],
+        "next_action": None,
+        "pending_action": None,
+        "awaiting_approval": False,
+        "resume_approved": False,
+        "focus": None,
+        "termination_reason": None,
         "history": [],
         "metadata": {"run_id": run_id},
         "usage": {"input_tokens": 0, "output_tokens": 0, "cost": 0.0},
@@ -63,7 +92,7 @@ def _initial_state(request: RefineRequest, run_id: str) -> dict:
     }
 
 
-async def _persist(db: AsyncSession, run: PromptRun, request: RefineRequest, final_state: dict):
+async def _persist(db: AsyncSession, run: PromptRun, final_state: dict):
     history = final_state.get("history", [])
     usage = final_state.get("usage", {})
     run.final_prompt = final_state.get("current_prompt")
@@ -76,10 +105,63 @@ async def _persist(db: AsyncSession, run: PromptRun, request: RefineRequest, fin
             prompt=h["prompt"], critique=h.get("critique"), score=h.get("score"),
         ))
     db.add(PromptMemory(
-        id=str(uuid4()), title=request.prompt[:60], current_version=1,
+        id=str(uuid4()), title=(run.original_prompt or "")[:60], current_version=1,
         state={"final_prompt": run.final_prompt, "final_score": run.final_score, "history": history},
     ))
     await db.commit()
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"data: {json.dumps({'event': event, **data})}\n\n"
+
+
+def _done_event(run_id: str, st: dict) -> str:
+    usage = st.get("usage", {})
+    return _sse("done", {
+        "run_id": run_id,
+        "final_prompt": st.get("current_prompt"),
+        "final_score": st.get("final_score"),
+        "iterations": st.get("iteration"),
+        "termination_reason": st.get("termination_reason"),
+        "decisions": st.get("decisions", []),
+        "total_cost": round(usage.get("cost", 0.0), 6),
+        "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
+    })
+
+
+async def _stream_run(db: AsyncSession, run: PromptRun, state: dict):
+    yield _sse("start", {"run_id": run.id, "original_prompt": run.original_prompt})
+    final_state = state
+    paused = False
+    try:
+        async for chunk in build_prompt_graph().astream(state, config=CONFIG):
+            for node, st in chunk.items():
+                final_state = st
+                if node == "orchestrator":
+                    dec = (st.get("decisions") or [{}])[-1]
+                    yield _sse("decision", {"decision": dec, "step": st.get("steps_used")})
+                    if st.get("next_action") == "gate":
+                        _PAUSED[run.id] = st
+                        paused = True
+                        yield _sse("gate", {"run_id": run.id, "pending_action": st.get("pending_action"), "decision": dec})
+                elif node == "creator":
+                    yield _sse("draft", {"iteration": st.get("iteration", 0) + 1, "prompt": st.get("current_prompt", "")})
+                elif node == "tester":
+                    yield _sse("test", {"outputs": st.get("test_outputs", [])})
+                elif node == "asserts":
+                    yield _sse("assert", st.get("assertion_results", {}))
+                elif node == "critic":
+                    crit = st.get("critique") or {}
+                    yield _sse("critique", {"score": crit.get("score"), "critique": crit})
+                elif node == "control":
+                    hist = st.get("history", [])
+                    if hist:
+                        yield _sse("iteration", hist[-1])
+        if not paused:
+            await _persist(db, run, final_state)
+            yield _done_event(run.id, final_state)
+    except Exception as e:
+        yield _sse("error", {"message": str(e)[:300]})
 
 
 @router.post("/prompt/refine")
@@ -87,15 +169,15 @@ async def refine_prompt(request: RefineRequest, db: AsyncSession = Depends(get_d
     run_id = str(uuid4())
     run = PromptRun(
         id=run_id, mode=request.mode, creator_model=request.creator_model,
-        critic_model=request.critic_model, max_iterations=request.iterations,
-        original_prompt=request.prompt,
+        critic_model=request.critic_model, max_iterations=request.iterations, original_prompt=request.prompt,
     )
     db.add(run)
     await db.commit()
-
-    final_state = await build_prompt_graph().ainvoke(_initial_state(request, run_id))
-    await _persist(db, run, request, final_state)
-
+    # Non-streaming path never gates.
+    state = _initial_state(request, run_id)
+    state["gated"] = False
+    final_state = await build_prompt_graph().ainvoke(state, config=CONFIG)
+    await _persist(db, run, final_state)
     usage = final_state.get("usage", {})
     return {
         "run_id": run_id,
@@ -103,61 +185,48 @@ async def refine_prompt(request: RefineRequest, db: AsyncSession = Depends(get_d
         "final_score": final_state.get("final_score"),
         "iterations": final_state["iteration"],
         "iterations_detail": final_state.get("history", []),
+        "decisions": final_state.get("decisions", []),
+        "termination_reason": final_state.get("termination_reason"),
         "total_cost": round(usage.get("cost", 0.0), 6),
         "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
     }
 
 
-def _sse(event: str, data: dict) -> str:
-    return f"data: {json.dumps({'event': event, **data})}\n\n"
-
-
 @router.post("/prompt/refine/stream")
 async def refine_stream(request: RefineRequest, db: AsyncSession = Depends(get_db)):
-    """Live SSE: emits 'draft' (creator), 'critique' (critic), 'iteration', then 'done'."""
     run_id = str(uuid4())
     run = PromptRun(
         id=run_id, mode=request.mode, creator_model=request.creator_model,
-        critic_model=request.critic_model, max_iterations=request.iterations,
-        original_prompt=request.prompt,
+        critic_model=request.critic_model, max_iterations=request.iterations, original_prompt=request.prompt,
     )
     db.add(run)
     await db.commit()
+    return StreamingResponse(_stream_run(db, run, _initial_state(request, run_id)), media_type="text/event-stream")
 
-    async def gen():
-        yield _sse("start", {"run_id": run_id, "original_prompt": request.prompt})
-        final_state: dict = {}
-        try:
-            async for chunk in build_prompt_graph().astream(_initial_state(request, run_id)):
-                for node, st in chunk.items():
-                    final_state = st
-                    if node == "creator":
-                        yield _sse("draft", {"iteration": st.get("iteration", 0) + 1, "prompt": st.get("current_prompt", "")})
-                    elif node == "tester":
-                        yield _sse("test", {"outputs": st.get("test_outputs", [])})
-                    elif node == "asserts":
-                        yield _sse("assert", st.get("assertion_results", {}))
-                    elif node == "critic":
-                        crit = st.get("critique") or {}
-                        yield _sse("critique", {"score": crit.get("score"), "critique": crit})
-                    elif node == "control":
-                        hist = st.get("history", [])
-                        if hist:
-                            yield _sse("iteration", hist[-1])
-            await _persist(db, run, request, final_state)
-            usage = final_state.get("usage", {})
-            yield _sse("done", {
-                "run_id": run_id,
-                "final_prompt": final_state.get("current_prompt"),
-                "final_score": final_state.get("final_score"),
-                "iterations": final_state.get("iteration"),
-                "total_cost": round(usage.get("cost", 0.0), 6),
-                "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
-            })
-        except Exception as e:  # surface errors over the stream
-            yield _sse("error", {"message": str(e)[:300]})
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+@router.post("/prompt/refine/resume")
+async def refine_resume(request: ResumeRequest, db: AsyncSession = Depends(get_db)):
+    state = _PAUSED.pop(request.run_id, None)
+    if state is None:
+        raise HTTPException(status_code=404, detail="No paused run with that id")
+    run = (await db.execute(select(PromptRun).where(PromptRun.id == request.run_id))).scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    if not request.approved:
+        # Reject: finalize as-is.
+        state["termination_reason"] = "rejected by user"
+
+        async def reject_gen():
+            await _persist(db, run, state)
+            yield _done_event(run.id, state)
+
+        return StreamingResponse(reject_gen(), media_type="text/event-stream")
+
+    state["resume_approved"] = True
+    if request.edit:
+        state["current_prompt"] = request.edit
+    return StreamingResponse(_stream_run(db, run, state), media_type="text/event-stream")
 
 
 @router.get("/prompt/runs")

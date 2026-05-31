@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Check, Copy, Loader2, Plus, X } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Copy, Loader2, Plus, X } from "lucide-react";
 import { ModeNav } from "@/components/mode-nav";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,11 @@ const DEPTHS = [
 ] as const;
 const STEERS = ["More concise", "Add output format", "Stronger constraints", "Make it for Cursor", "Add examples"];
 const ASSERT_TYPES = ["contains", "not_contains", "regex", "json", "max_len", "min_len"];
+const AUTONOMY = [
+  { key: "bounded", label: "Bounded" },
+  { key: "auto", label: "Auto" },
+  { key: "totally_auto", label: "Totally auto" },
+];
 
 function detectMode(input: string): "improve" | "generate" {
   const t = input.trim();
@@ -75,8 +80,13 @@ export default function ForgePage() {
   const [assertions, setAssertions] = useState<{ type: string; value?: string }[]>([]);
   const [aType, setAType] = useState("contains");
   const [aValue, setAValue] = useState("");
+  const [autonomy, setAutonomy] = useState("auto");
+  const [gated, setGated] = useState(true);
+  const [orchestratorModel, setOrchestratorModel] = useState("openai/gpt-4o-mini");
+  const [maxSteps, setMaxSteps] = useState(6);
+  const [maxCost, setMaxCost] = useState(1.0);
 
-  const { iterations, finalPrompt, finalScore, totalCost, status, isStreaming, error, start, steer } = useForge();
+  const { iterations, finalPrompt, finalScore, totalCost, status, isStreaming, error, decisions, gate, terminationReason, start, steer, resume } = useForge();
 
   const mode = modeOverride ?? detectMode(input);
   const tool = toolOverride ?? detectTool(input);
@@ -89,6 +99,11 @@ export default function ForgePage() {
     target_tool: tool,
     test_inputs: testInputs.map((t) => t.trim()).filter(Boolean),
     assertions,
+    autonomy,
+    orchestrator_model: orchestratorModel,
+    gated: gated && autonomy !== "totally_auto",
+    max_steps: maxSteps,
+    max_cost: maxCost,
   });
   const addAssertion = () => {
     if (aType !== "json" && !aValue.trim()) return;
@@ -156,7 +171,35 @@ export default function ForgePage() {
                 return `${d.label} · ${d.iterations}`;
               }} />
             </div>
-            <details className="group mt-5 border-t border-dashed border-white/10 pt-4">
+            <div className="mt-4">
+              <p className="font-eyebrow mb-1.5 text-[10px] text-muted-foreground">Autonomy</p>
+              <PillRow items={AUTONOMY.map((a) => a.key)} value={autonomy} onPick={setAutonomy} render={(k) => AUTONOMY.find((a) => a.key === k)!.label} />
+            </div>
+
+            <details className="group mt-4 border-t border-dashed border-white/10 pt-4">
+              <summary className="font-eyebrow cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">+ Agent settings</summary>
+              <div className="mt-3 grid gap-4">
+                <ModelSelector value={orchestratorModel} onValueChange={setOrchestratorModel} label="Orchestrator Model" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="maxsteps" className="font-eyebrow text-[10px] text-muted-foreground">Max steps</Label>
+                    <input id="maxsteps" type="number" min={1} max={30} value={maxSteps} onChange={(e) => setMaxSteps(Math.max(1, Math.min(30, parseInt(e.target.value) || 6)))} className="mt-1 w-full rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none" />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxcost" className="font-eyebrow text-[10px] text-muted-foreground">Max cost $</Label>
+                    <input id="maxcost" type="number" min={0.01} step={0.1} value={maxCost} onChange={(e) => setMaxCost(Math.max(0.01, parseFloat(e.target.value) || 1))} className="mt-1 w-full rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none" />
+                  </div>
+                </div>
+                {autonomy !== "totally_auto" && (
+                  <label className="flex items-center gap-2 text-sm text-foreground/80">
+                    <input type="checkbox" checked={gated} onChange={(e) => setGated(e.target.checked)} className="accent-primary" />
+                    Pause for my approval before each refine / finish
+                  </label>
+                )}
+              </div>
+            </details>
+
+            <details className="group mt-4 border-t border-dashed border-white/10 pt-4">
               <summary className="font-eyebrow cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">+ Models</summary>
               <div className="mt-3 grid gap-4">
                 <ModelSelector value={creatorModel} onValueChange={setCreatorModel} label="Creator Model" />
@@ -229,6 +272,37 @@ export default function ForgePage() {
                 </span>
               )}
             </div>
+
+            {gate && (
+              <div className="mt-4 rounded-[10px] border border-primary bg-primary/10 p-4">
+                <p className="font-eyebrow text-[10px] text-primary">Approval needed</p>
+                <p className="mt-2 text-sm text-foreground/85">
+                  The agent wants to <strong>{gate.pending_action}</strong>
+                  {gate.decision?.reason ? ` — ${gate.decision.reason}` : ""}.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" onClick={() => resume(true)}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={() => resume(false)}>Reject &amp; finish</Button>
+                </div>
+              </div>
+            )}
+
+            {decisions.length > 0 && (
+              <details className="group mt-4 rounded-[10px] border border-dashed border-white/10 bg-card">
+                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3">
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-90" />
+                  <span className="font-eyebrow text-xs text-muted-foreground">Decision trace · {decisions.length}{terminationReason ? ` · ${terminationReason}` : ""}</span>
+                </summary>
+                <ol className="space-y-1 border-t border-white/10 px-4 py-3 text-xs text-foreground/70">
+                  {decisions.map((d, i) => (
+                    <li key={i}>
+                      <span className="text-primary">{d.action}</span>
+                      {d.reason ? ` — ${d.reason}` : ""}
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
 
             <div className="mt-4 space-y-4">
               {iterations.map((it, i) => (

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { streamRefine } from "@/lib/api";
-import { LiveIteration, RefineRequest, StreamEvent } from "@/lib/types";
+import { streamRefine, resumeRefine } from "@/lib/api";
+import { Decision, LiveIteration, RefineRequest, StreamEvent } from "@/lib/types";
 
 function formatCritique(c?: {
   strengths?: string[];
@@ -49,6 +49,9 @@ export function useForge() {
   const [status, setStatus] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [gate, setGate] = useState<{ run_id: string; pending_action?: string; decision?: Decision } | null>(null);
+  const [terminationReason, setTerminationReason] = useState<string | null>(null);
 
   const handle = (e: StreamEvent) => {
     switch (e.event) {
@@ -63,6 +66,16 @@ export function useForge() {
         break;
       case "critique":
         setStatus(`Scoring${e.score != null ? ` ${e.score}/10` : ""}…`);
+        break;
+      case "decision":
+        if (e.decision) {
+          setDecisions((prev) => [...prev, e.decision as Decision]);
+          setStatus(`Agent: ${e.decision.action}${e.decision.reason ? ` — ${e.decision.reason}` : ""}`);
+        }
+        break;
+      case "gate":
+        setGate({ run_id: e.run_id!, pending_action: e.pending_action, decision: e.decision });
+        setStatus("Awaiting your approval…");
         break;
       case "iteration":
         setIterations((prev) => [
@@ -82,6 +95,9 @@ export function useForge() {
         setFinalPrompt(e.final_prompt ?? null);
         setFinalScore(e.final_score ?? null);
         setTotalCost(e.total_cost ?? null);
+        if (e.decisions) setDecisions(e.decisions);
+        setTerminationReason(e.termination_reason ?? null);
+        setGate(null);
         setStatus("Complete");
         break;
       case "error":
@@ -109,6 +125,9 @@ export function useForge() {
     setFinalPrompt(null);
     setFinalScore(null);
     setTotalCost(null);
+    setDecisions([]);
+    setGate(null);
+    setTerminationReason(null);
     setStatus("Starting…");
     await stream(payload);
   };
@@ -119,18 +138,38 @@ export function useForge() {
     await stream(payload);
   };
 
+  // Resume a gated run after the human approves/rejects.
+  const resume = async (approved: boolean, edit?: string) => {
+    if (!gate) return;
+    const runId = gate.run_id;
+    setGate(null);
+    setIsStreaming(true);
+    setError(null);
+    try {
+      await resumeRefine({ run_id: runId, approved, edit }, handle);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Resume failed");
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
   const reset = () => {
     setOriginalPrompt("");
     setIterations([]);
     setFinalPrompt(null);
     setFinalScore(null);
     setTotalCost(null);
+    setDecisions([]);
+    setGate(null);
+    setTerminationReason(null);
     setStatus("");
     setError(null);
   };
 
   return {
     originalPrompt, iterations, finalPrompt, finalScore, totalCost,
-    status, isStreaming, error, start, steer, reset,
+    status, isStreaming, error, decisions, gate, terminationReason,
+    start, steer, resume, reset,
   };
 }
