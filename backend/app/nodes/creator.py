@@ -1,9 +1,12 @@
 from app.agents.state import AgentState
 from app.agents.llm import get_openrouter_llm
+from app.agents.formatting import build_context_block
 
 
 async def creator_node(state: AgentState) -> AgentState:
     llm = get_openrouter_llm(state["creator_model"])
+
+    context_block = build_context_block(state)
 
     prompt = f"""
 You are an expert prompt engineer specializing in creating clear, effective, and well-structured prompts for large language models.
@@ -16,6 +19,8 @@ Refine and improve the following prompt based on the critique provided.
 
 ## Previous Critique
 {state.get("critique") if state.get("critique") else "This is the first iteration - focus on clarity, specificity, and structure."}
+
+{context_block}
 
 ## Prompt Engineering Principles
 1. **Clarity**: Use precise, unambiguous language
@@ -34,7 +39,8 @@ Refine and improve the following prompt based on the critique provided.
 - Make the prompt actionable and specific
 
 ## Output
-Return ONLY the improved prompt text. No explanations, no meta-commentary, no markdown formatting.
+Return ONLY the improved prompt text — no explanations or meta-commentary.
+Use the structure and markdown sections described in "Output Formatting" above so the prompt is ready to paste into the target tool.
 """
 
     response = await llm.ainvoke(prompt)
