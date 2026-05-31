@@ -15,7 +15,10 @@ export function ModeNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-dashed border-white/10 bg-background/70 backdrop-blur-[10px]">
       <div className="flex items-center justify-between gap-4 px-6 py-4">
-        <Link href="/" className="font-display text-xl">
+        <Link
+          href="/"
+          className="text-lg font-bold tracking-tight text-foreground [font-family:var(--font-accent)]"
+        >
           PromptForge<span className="text-primary">.</span>
         </Link>
         <nav className="flex items-center gap-1 rounded-[10px] border border-dashed border-white/10 p-1">
