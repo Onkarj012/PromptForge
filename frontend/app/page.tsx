@@ -195,9 +195,9 @@ export default function HomePage() {
         </Reveal>
       </div>
 
-      {/* Final CTA — dark editorial section */}
+      {/* Final CTA — cream light-contrast section */}
       <Reveal>
-        <section className="mt-10 bg-[#070707] py-24 text-[#efece4]">
+        <section className="mt-10 bg-[#efece4] py-24 text-[#0f0f0f]">
           <div className="mx-auto max-w-6xl px-6 text-center lg:px-10">
             <h2 className="font-display mx-auto max-w-2xl text-5xl sm:text-6xl">
               Automation starts with a better prompt.

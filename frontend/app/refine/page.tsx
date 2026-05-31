@@ -169,28 +169,19 @@ export default function Page() {
   const statusLabel = isLoading ? "Running" : response ? "Complete" : "Idle";
 
   return (
-    <main className="relative min-h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-100 motion-safe:animate-in motion-safe:fade-in">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 right-1/4 h-[420px] w-[420px] rounded-full bg-primary/20 blur-[140px]" />
-        <div className="absolute bottom-0 left-1/4 h-[360px] w-[360px] rounded-full bg-fuchsia-500/10 blur-[160px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_80%_20%,rgba(63,63,70,0.12),transparent)]" />
-      </div>
-
+    <main className="relative min-h-screen w-screen overflow-hidden bg-background text-foreground motion-safe:animate-in motion-safe:fade-in">
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-zinc-800/60 bg-zinc-950/80 px-6 py-4 backdrop-blur">
+        <header className="flex items-center justify-between gap-4 border-b border-white/10 bg-background/80 px-6 py-4 backdrop-blur">
           <Link href="/" className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center border border-zinc-800/70 bg-zinc-900/70">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">
-                PromptForge
-              </p>
-              <p className="text-sm font-medium">Prompt Studio</p>
-            </div>
+            <span className="font-display text-xl">
+              PromptForge<span className="text-primary">.</span>
+            </span>
+            <span className="font-eyebrow text-[10px] text-muted-foreground">
+              Prompt Studio
+            </span>
           </Link>
-          <div className="hidden items-center gap-2 text-xs text-zinc-300 sm:flex">
-            <Badge className="border border-zinc-800/70 bg-zinc-900/70 text-zinc-200">
+          <div className="hidden items-center gap-2 text-xs text-foreground/70 sm:flex">
+            <Badge className="border border-white/10 bg-white/[0.03] text-foreground">
               {statusLabel}
             </Badge>
             <span>Agentic refinement workspace</span>
@@ -209,16 +200,16 @@ export default function Page() {
 
         <ResizablePanelGroup
           orientation="horizontal"
-          className="flex-1 border-t border-zinc-800/40"
+          className="flex-1 border-t border-white/10"
         >
           <ResizablePanel defaultSize={48} minSize={32}>
             <div className="flex h-full flex-col gap-6 overflow-auto p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                     Input Layer
                   </p>
-                  <h2 className="text-lg font-semibold text-zinc-100">
+                  <h2 className="font-display text-2xl text-foreground">
                     Prompt Studio
                   </h2>
                 </div>
@@ -235,42 +226,42 @@ export default function Page() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Words
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                  <p className="mt-2 text-sm font-semibold text-foreground">
                     {wordCount}
                   </p>
                 </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Characters
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                  <p className="mt-2 text-sm font-semibold text-foreground">
                     {charCount}
                   </p>
                 </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Profile
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                  <p className="mt-2 text-sm font-semibold text-foreground">
                     {profileLabel}
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-4 rounded-none border border-zinc-800/70 bg-zinc-900/40 p-4">
+              <div className="grid gap-4 rounded-[10px] border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="prompt">Your Prompt</Label>
-                  <span className="text-xs text-zinc-400">Min 10 chars</span>
+                  <span className="text-xs text-muted-foreground">Min 10 chars</span>
                 </div>
                 <Textarea
                   id="prompt"
                   ref={textareaRef}
                   placeholder="Describe what you want to create..."
-                  className="min-h-[140px] resize-none overflow-hidden border-zinc-800/70 bg-zinc-950/60"
+                  className="min-h-[140px] resize-none overflow-hidden border-white/10 bg-black/40"
                   onInput={handleInput}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
@@ -283,7 +274,7 @@ export default function Page() {
                     <Input
                       id="domain"
                       placeholder="e.g., product, code, story"
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
+                      className="mt-2 border-white/10 bg-black/40"
                       value={domain}
                       onChange={(e) => setDomain(e.target.value)}
                       disabled={isLoading}
@@ -296,7 +287,7 @@ export default function Page() {
                       type="number"
                       min={1}
                       max={5}
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
+                      className="mt-2 border-white/10 bg-black/40"
                       value={maxIterations}
                       onChange={(e) => {
                         const nextValue = parseInt(e.target.value, 10);
@@ -326,7 +317,7 @@ export default function Page() {
                     <Input
                       id="goal"
                       placeholder="Outcome you want from the refined prompt"
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
+                      className="mt-2 border-white/10 bg-black/40"
                       value={goal}
                       onChange={(e) => setGoal(e.target.value)}
                       disabled={isLoading}
@@ -337,7 +328,7 @@ export default function Page() {
                     <Input
                       id="audience"
                       placeholder="Who the output is for"
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
+                      className="mt-2 border-white/10 bg-black/40"
                       value={audience}
                       onChange={(e) => setAudience(e.target.value)}
                       disabled={isLoading}
@@ -348,7 +339,7 @@ export default function Page() {
                     <Textarea
                       id="constraints"
                       placeholder="Formatting, structure, exclusions"
-                      className="mt-2 min-h-[90px] resize-none border-zinc-800/70 bg-zinc-950/60"
+                      className="mt-2 min-h-[90px] resize-none border-white/10 bg-black/40"
                       value={constraints}
                       onChange={(e) => setConstraints(e.target.value)}
                       disabled={isLoading}
@@ -388,7 +379,7 @@ export default function Page() {
                       onClick={() => applyProfile(key)}
                     >
                       <span>{PROFILES[key].label}</span>
-                      <span className="text-xs text-zinc-300">
+                      <span className="text-xs text-foreground/70">
                         {PROFILES[key].description}
                       </span>
                     </Button>
@@ -432,12 +423,12 @@ export default function Page() {
                 </Alert>
               )}
 
-              <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-4">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-zinc-400">
+              <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-4">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">
                   <Gauge className="h-3 w-3 text-primary" />
                   Prompt Checklist
                 </div>
-                <ul className="mt-3 space-y-2 text-xs text-zinc-300">
+                <ul className="mt-3 space-y-2 text-xs text-foreground/70">
                   <li>Specify the desired outcome and audience.</li>
                   <li>Call out constraints, exclusions, and format needs.</li>
                   <li>Keep the prompt focused on a single job-to-be-done.</li>
@@ -452,56 +443,56 @@ export default function Page() {
             <div className="flex h-full flex-col gap-4 p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                     Output Layer
                   </p>
-                  <h2 className="text-lg font-semibold text-zinc-100">
+                  <h2 className="font-display text-2xl text-foreground">
                     Refinement Timeline
                   </h2>
                 </div>
-                <Badge className="border border-zinc-800/70 bg-zinc-900/70 text-zinc-200">
+                <Badge className="border border-white/10 bg-white/[0.03] text-foreground">
                   {statusLabel}
                 </Badge>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Final Score
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                  <p className="mt-2 text-sm font-semibold text-foreground">
                     {response?.final_score !== undefined
                       ? `${response.final_score}/10`
                       : "--"}
                   </p>
                 </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Cost
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                  <p className="mt-2 text-sm font-semibold text-foreground">
                     {response?.total_cost !== undefined
                       ? `$${response.total_cost.toFixed(4)}`
                       : "--"}
                   </p>
                 </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
+                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Iterations
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                  <p className="mt-2 text-sm font-semibold text-foreground">
                     {response?.iterations ?? "--"}
                   </p>
                 </div>
               </div>
 
               {!isLoading && iterations.length === 0 && (
-                <div className="flex flex-1 flex-col items-center justify-center rounded-none border border-dashed border-zinc-800/70 bg-zinc-900/30 p-8 text-center">
+                <div className="flex flex-1 flex-col items-center justify-center rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
                   <Sparkles className="h-6 w-6 text-primary" />
-                  <p className="mt-4 text-sm text-zinc-200">
+                  <p className="mt-4 text-sm text-foreground">
                     Submit a prompt to see the refinement process.
                   </p>
-                  <p className="mt-2 text-xs text-zinc-400">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     The timeline will capture critique, revisions, and scoring.
                   </p>
                 </div>
@@ -525,7 +516,7 @@ export default function Page() {
                     ))}
 
                     {response && (
-                      <div className="mt-6 rounded-none border border-primary/20 bg-primary/5 p-4">
+                      <div className="mt-6 rounded-[10px] border border-primary/20 bg-primary/5 p-4">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="text-sm font-semibold text-primary">
                             Final Refined Prompt

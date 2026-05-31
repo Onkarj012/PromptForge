@@ -50,38 +50,39 @@
 }
 
 :root {
-  /* Syncore — warm editorial palette */
-  --background: #efece4;        /* warm beige/cream paper */
-  --foreground: #070707;        /* ink */
-  --card: #f5f2ea;              /* warm light surface */
-  --card-foreground: #070707;
-  --popover: #f5f2ea;
-  --popover-foreground: #070707;
+  /* Syncore — dark editorial palette */
+  --background: #0f0f0f;        /* near-black canvas */
+  --foreground: #f2f2f2;        /* light ink */
+  --card: #070707;             /* deeper surface */
+  --card-foreground: #f2f2f2;
+  --popover: #070707;
+  --popover-foreground: #f2f2f2;
   --primary: #f24100;           /* vermilion orange accent */
   --primary-foreground: #ffffff;
-  --secondary: #e6e1d6;         /* darker warm beige */
-  --secondary-foreground: #070707;
-  --muted: #e6e1d6;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f2f2f2;
+  --muted: #1a1a1a;
   --muted-foreground: #969696;
-  --accent: #54220f;            /* deep rust / warm depth */
-  --accent-foreground: #ffffff;
-  --destructive: #b3271a;
-  --border: #07070719;          /* ~10% ink hairline */
-  --input: #07070726;           /* ~15% ink hairline */
+  --accent: #54220f;            /* deep rust */
+  --accent-foreground: #f2f2f2;
+  --cream: #efece4;             /* light contrast section */
+  --destructive: #e5484d;
+  --border: #ffffff1a;          /* white 10% hairline */
+  --input: #ffffff1a;
   --ring: #f24100;
   --chart-1: #f24100;
   --chart-2: #54220f;
   --chart-3: #969696;
-  --chart-4: #070707;
-  --chart-5: #c0bdb4;
+  --chart-4: #f2f2f2;
+  --chart-5: #0f0f0f;
   --radius: 0.625rem;           /* 10px — restrained editorial radii */
-  --sidebar: #efece4;
-  --sidebar-foreground: #070707;
+  --sidebar: #070707;
+  --sidebar-foreground: #f2f2f2;
   --sidebar-primary: #f24100;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e6e1d6;
-  --sidebar-accent-foreground: #070707;
-  --sidebar-border: #07070719;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #f2f2f2;
+  --sidebar-border: #ffffff1a;
   --sidebar-ring: #f24100;
 }
 

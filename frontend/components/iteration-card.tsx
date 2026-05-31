@@ -9,9 +9,9 @@ interface IterationCardProps {
 
 export function IterationCard({ iteration }: IterationCardProps) {
   return (
-    <Card className="overflow-hidden bg-zinc-900 border-zinc-800">
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/50 border-b border-zinc-800">
-        <h3 className="text-sm font-medium text-zinc-100">
+    <Card className="overflow-hidden rounded-[10px] border-white/10 bg-card">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
+        <h3 className="font-eyebrow text-xs text-muted-foreground">
           Iteration {iteration.iteration}
         </h3>
         <Badge
@@ -26,21 +26,21 @@ export function IterationCard({ iteration }: IterationCardProps) {
           Score: {iteration.score}/10
         </Badge>
       </div>
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="space-y-4 p-4">
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+          <h4 className="font-eyebrow text-xs text-muted-foreground">
             Refined Prompt
           </h4>
-          <div className="prose prose-sm dark:prose-invert max-w-none text-zinc-300">
+          <div className="prose prose-sm prose-invert max-w-none text-foreground/80">
             <ReactMarkdown>{iteration.prompt}</ReactMarkdown>
           </div>
         </div>
         {iteration.critique && (
-          <div className="space-y-2 pt-2 border-t border-zinc-800/50">
-            <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+          <div className="space-y-2 border-t border-white/10 pt-2">
+            <h4 className="font-eyebrow text-xs text-muted-foreground">
               Critique
             </h4>
-            <div className="prose prose-sm dark:prose-invert max-w-none text-zinc-400 italic">
+            <div className="prose prose-sm prose-invert max-w-none italic text-muted-foreground">
               <ReactMarkdown>{iteration.critique}</ReactMarkdown>
             </div>
           </div>
