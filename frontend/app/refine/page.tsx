@@ -68,7 +68,7 @@ export default function Page() {
   const [constraints, setConstraints] = useState("");
   const [tone, setTone] = useState("");
   const [profile, setProfile] = useState<ProfileState>("balanced");
-  const [maxIterations, setMaxIterations] = useState(
+  const [maxIterations, setMaxIterations] = useState<number>(
     PROFILES.balanced.iterations,
   );
   const [creatorModel, setCreatorModel] = useState(

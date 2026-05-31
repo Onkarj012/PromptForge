@@ -8,7 +8,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-serif);
+  --font-accent: var(--font-accent);
+  --font-mono: var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,38 +50,39 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.541 0.281 293.009);
-  --primary-foreground: oklch(0.969 0.016 293.756);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.811 0.111 293.571);
-  --chart-2: oklch(0.606 0.25 292.717);
-  --chart-3: oklch(0.541 0.281 293.009);
-  --chart-4: oklch(0.491 0.27 292.581);
-  --chart-5: oklch(0.432 0.232 292.759);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.541 0.281 293.009);
-  --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  /* Syncore — warm editorial palette */
+  --background: #efece4;        /* warm beige/cream paper */
+  --foreground: #070707;        /* ink */
+  --card: #f5f2ea;              /* warm light surface */
+  --card-foreground: #070707;
+  --popover: #f5f2ea;
+  --popover-foreground: #070707;
+  --primary: #f24100;           /* vermilion orange accent */
+  --primary-foreground: #ffffff;
+  --secondary: #e6e1d6;         /* darker warm beige */
+  --secondary-foreground: #070707;
+  --muted: #e6e1d6;
+  --muted-foreground: #969696;
+  --accent: #54220f;            /* deep rust / warm depth */
+  --accent-foreground: #ffffff;
+  --destructive: #b3271a;
+  --border: #07070719;          /* ~10% ink hairline */
+  --input: #07070726;           /* ~15% ink hairline */
+  --ring: #f24100;
+  --chart-1: #f24100;
+  --chart-2: #54220f;
+  --chart-3: #969696;
+  --chart-4: #070707;
+  --chart-5: #c0bdb4;
+  --radius: 0.625rem;           /* 10px — restrained editorial radii */
+  --sidebar: #efece4;
+  --sidebar-foreground: #070707;
+  --sidebar-primary: #f24100;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6e1d6;
+  --sidebar-accent-foreground: #070707;
+  --sidebar-border: #07070719;
+  --sidebar-ring: #f24100;
 }
 
 .dark {
@@ -122,17 +125,27 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans), system-ui, sans-serif;
   }
+}
+
+/* Editorial display serif — condensed masthead feel via tight metrics */
+.font-display {
+  font-family: var(--font-serif), Georgia, serif;
+  letter-spacing: -1.6px;
+  line-height: 0.95;
+  font-weight: 400;
+}
+.font-eyebrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 html,
 body {
   min-height: 100%;
   background-color: var(--background);
-  background-image:
-    radial-gradient(1200px 600px at 80% 10%, rgb(90 64 190 / 0.18), transparent 60%),
-    radial-gradient(900px 500px at 15% 15%, rgb(63 63 70 / 0.25), transparent 55%);
-  background-attachment: fixed;
   overscroll-behavior-y: none;
 }
 
@@ -141,8 +154,31 @@ html {
   scroll-padding-top: 96px;
 }
 
+/* Soft eased blinking cursor (Syncore signature) */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* Subtle ambient float micro-parallax */
+@keyframes float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -3px, 0); }
+}
+.animate-float {
+  animation: float 6s cubic-bezier(0.44, 0, 0.56, 1) infinite;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  .animate-blink,
+  .animate-float {
+    animation: none;
   }
 }
