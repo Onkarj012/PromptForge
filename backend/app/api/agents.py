@@ -13,6 +13,9 @@ class RefineRequest(BaseModel):
     creator_model: str
     critic_model: str
     iterations: int
+    target_tool: str = "generic"
+    project_type: str | None = None
+    stack: str | None = None
 
 
 router = APIRouter(tags=["agents"])
@@ -55,6 +58,9 @@ async def refine_prompt(
         "max_iterations": request.iterations,
         "creator_model": request.creator_model,
         "critic_model": request.critic_model,
+        "target_tool": request.target_tool,
+        "project_type": request.project_type,
+        "stack": request.stack,
         "history": [],
         "metadata": {
             "run_id": run_id,   # 👈 important for persistence nodes

@@ -38,6 +38,22 @@ const TONES = [
   "Technical",
 ];
 
+const TOOLS = [
+  { value: "cursor", label: "Cursor" },
+  { value: "bolt", label: "Bolt" },
+  { value: "v0", label: "v0" },
+  { value: "claude", label: "Claude" },
+  { value: "generic", label: "Generic" },
+];
+
+const PROJECT_TYPES = [
+  { value: "saas", label: "SaaS" },
+  { value: "api", label: "API" },
+  { value: "landing_page", label: "Landing Page" },
+  { value: "cli", label: "CLI" },
+  { value: "mobile_app", label: "Mobile App" },
+];
+
 const PROFILES = {
   quick: {
     label: "Quick",
@@ -67,6 +83,9 @@ export default function Page() {
   const [audience, setAudience] = useState("");
   const [constraints, setConstraints] = useState("");
   const [tone, setTone] = useState("");
+  const [targetTool, setTargetTool] = useState("cursor");
+  const [projectType, setProjectType] = useState("");
+  const [stack, setStack] = useState("");
   const [profile, setProfile] = useState<ProfileState>("balanced");
   const [maxIterations, setMaxIterations] = useState<number>(
     PROFILES.balanced.iterations,
@@ -140,6 +159,9 @@ export default function Page() {
         creator_model: creatorModel,
         critic_model: criticModel,
         iterations: maxIterations,
+        target_tool: targetTool,
+        project_type: projectType || undefined,
+        stack: stack || undefined,
       });
     } catch (error) {
       console.error("Refinement failed:", error);
@@ -154,6 +176,9 @@ export default function Page() {
     setAudience("");
     setConstraints("");
     setTone("");
+    setTargetTool("cursor");
+    setProjectType("");
+    setStack("");
     setProfile("balanced");
     setMaxIterations(PROFILES.balanced.iterations);
     if (textareaRef.current) {
@@ -364,6 +389,60 @@ export default function Page() {
                       </Button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 rounded-none border border-zinc-800/70 bg-zinc-900/40 p-4">
+                <div className="grid gap-2">
+                  <Label>Target Tool</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {TOOLS.map((t) => (
+                      <Button
+                        key={t.value}
+                        type="button"
+                        variant={targetTool === t.value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setTargetTool(t.value)}
+                        disabled={isLoading}
+                      >
+                        {t.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Project Type (Optional)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PROJECT_TYPES.map((p) => (
+                      <Button
+                        key={p.value}
+                        type="button"
+                        variant={
+                          projectType === p.value ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() =>
+                          setProjectType(projectType === p.value ? "" : p.value)
+                        }
+                        disabled={isLoading}
+                      >
+                        {p.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="stack">Stack (Optional)</Label>
+                  <Input
+                    id="stack"
+                    placeholder="e.g., Next.js + Supabase + Stripe"
+                    className="mt-2 border-zinc-800/70 bg-zinc-950/60"
+                    value={stack}
+                    onChange={(e) => setStack(e.target.value)}
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
 

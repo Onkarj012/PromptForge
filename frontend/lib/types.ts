@@ -5,6 +5,9 @@ export type RefineRequest = {
     creator_model: string;
     critic_model: string;
     domain?: string;
+    target_tool?: string;
+    project_type?: string;
+    stack?: string;
 }
 
 export type RefineResponse = {

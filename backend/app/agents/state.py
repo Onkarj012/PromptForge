@@ -15,6 +15,10 @@ class AgentState(TypedDict):
 
     creator_model : Optional[str]
     critic_model : Optional[str]
+
+    target_tool : Optional[str]
+    project_type : Optional[str]
+    stack : Optional[str]
     
     history : List[Dict[str, Any]]
     metadata : Dict[str, Any]
