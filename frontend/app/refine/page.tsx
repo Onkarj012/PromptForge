@@ -97,13 +97,16 @@ export default function ForgePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <ModeNav />
+      <div className="sticky top-16 z-30 border-b border-dashed border-white/10 bg-background/90 px-4 py-3 backdrop-blur">
+        <div className="mx-auto max-w-7xl">
+          <p className="font-eyebrow text-[10px] text-foreground/60">Forge Mode</p>
+          <h1 className="font-display text-2xl">Forge a better prompt.</h1>
+        </div>
+      </div>
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <p className="font-eyebrow text-xs text-foreground/60">Forge Mode</p>
-        <h1 className="font-display mt-2 text-4xl">Forge a better prompt.</h1>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           {/* Composer (sticky on desktop) */}
-          <div className="relative rounded-[10px] border border-dashed border-white/15 bg-card p-6 lg:sticky lg:top-24">
+          <div className="relative rounded-[10px] border border-dashed border-white/15 bg-card p-6 lg:sticky lg:top-[148px]">
             <Corners />
             <div className="mb-3 flex items-center justify-between">
               <Label htmlFor="input" className="font-eyebrow text-xs text-muted-foreground">Your prompt or idea</Label>

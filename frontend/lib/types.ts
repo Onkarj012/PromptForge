@@ -62,25 +62,55 @@ export interface Iteration {
 }
 
 export type BenchRequest = {
-    prompt: string;
+    system_prompt: string;
+    test_inputs: string[];
     models: string[];
+    temperatures?: number[];
+    max_tokens?: number;
     critic_model?: string;
+    criteria?: string;
+    baseline_id?: string;
 };
 
-export type BenchResult = {
-    model: string;
-    output?: string;
-    score?: number;
+export type BenchOutput = {
+    input: string;
+    output: string;
+    score: number;
     latency_ms?: number;
     tokens?: number;
     cost?: number;
-    quality_per_dollar?: number | null;
-    error?: string;
+};
+
+export type BenchCell = {
+    model: string;
+    temperature: number;
+    score: number;
+    latency_ms: number;
+    tokens: number;
+    cost: number;
+    outputs: BenchOutput[];
+};
+
+export type BenchDelta = {
+    model: string;
+    temperature: number;
+    baseline: number;
+    current: number;
+    delta: number;
+    pass: boolean;
 };
 
 export type BenchResponse = {
     run_id: string;
-    results: BenchResult[];
+    cells: BenchCell[];
+    baseline?: { baseline_id: string; deltas: BenchDelta[]; regressed: boolean } | null;
+};
+
+export type Baseline = {
+    run_id: string;
+    label?: string;
+    models?: string[];
+    created_at?: string;
 };
 
 export type RunSummary = {

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, Integer, DateTime, Float
+from sqlalchemy import Column, Text, Integer, DateTime, Float, Boolean
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
@@ -57,27 +57,33 @@ class PromptIteration(Base):
 
 class BenchmarkRun(Base):
     """
-    One Bench Mode comparison: a prompt run across multiple models.
+    One Bench Mode run: a system prompt tested across models x settings x test inputs.
     """
     __tablename__ = "benchmark_runs"
 
     id = Column(Text, primary_key=True)
-    prompt = Column(Text, nullable=False)
+    label = Column(Text, nullable=True)
+    system_prompt = Column(Text, nullable=False)
+    test_inputs = Column(JSONB, nullable=False)
+    models = Column(JSONB, nullable=False)
+    settings = Column(JSONB, nullable=True)
     critic_model = Column(Text, nullable=True)
+    is_baseline = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class BenchmarkResult(Base):
     """
-    One model's result within a benchmark run.
+    One model x temperature cell within a benchmark run (averaged over test inputs).
     """
     __tablename__ = "benchmark_results"
 
     id = Column(Text, primary_key=True)
     run_id = Column(Text, nullable=False)
     model = Column(Text, nullable=False)
+    temperature = Column(Float, nullable=True)
     score = Column(Integer, nullable=True)
     latency_ms = Column(Integer, nullable=True)
     tokens = Column(Integer, nullable=True)
     cost = Column(Float, nullable=True)
-    output = Column(Text, nullable=True)
+    outputs = Column(JSONB, nullable=True)  # [{input, output, score}]

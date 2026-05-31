@@ -5,6 +5,7 @@ import {
   BenchResponse,
   RunSummary,
   StreamEvent,
+  Baseline,
 } from "./types";
 
 export const API_BASE =
@@ -31,6 +32,11 @@ export const refinePrompt = (payload: RefineRequest) =>
 
 export const benchRun = (payload: BenchRequest) =>
   post<BenchResponse>("/bench/run", payload);
+
+export const markBaseline = (runId: string) =>
+  post<{ run_id: string; is_baseline: boolean }>(`/bench/runs/${runId}/baseline`, {});
+
+export const listBaselines = () => get<Baseline[]>("/bench/baselines");
 
 export const listRuns = () => get<RunSummary[]>("/prompt/runs");
 
