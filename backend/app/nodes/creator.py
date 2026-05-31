@@ -20,6 +20,9 @@ Refine and improve the following prompt based on the critique provided.
 
 ## Previous Critique
 {state.get("critique") if state.get("critique") else "This is the first iteration - focus on clarity, specificity, and structure."}
+{f'''
+## Steering Instruction (highest priority — the user explicitly asked for this)
+{state["steer"]}''' if state.get("steer") else ""}
 
 {context_block}
 

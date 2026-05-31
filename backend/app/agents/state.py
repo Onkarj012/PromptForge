@@ -19,6 +19,7 @@ class AgentState(TypedDict):
     target_tool : Optional[str]
     project_type : Optional[str]
     stack : Optional[str]
+    steer : Optional[str]
     
     history : List[Dict[str, Any]]
     metadata : Dict[str, Any]

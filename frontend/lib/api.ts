@@ -4,6 +4,7 @@ import {
   BenchRequest,
   BenchResponse,
   RunSummary,
+  StreamEvent,
 } from "./types";
 
 export const API_BASE =
@@ -37,3 +38,38 @@ export const getRun = (id: string) =>
   get<RunSummary & { final_prompt?: string; iterations_detail?: unknown[] }>(
     `/prompt/runs/${id}`,
   );
+
+export async function streamRefine(
+  payload: RefineRequest,
+  onEvent: (e: StreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v1/prompt/refine/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  if (!res.ok || !res.body) throw new Error((await res.text()) || "Stream failed");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const parts = buf.split("\n\n");
+    buf = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part.trim();
+      if (line.startsWith("data:")) {
+        try {
+          onEvent(JSON.parse(line.slice(5).trim()) as StreamEvent);
+        } catch {
+          /* ignore malformed keep-alive chunks */
+        }
+      }
+    }
+  }
+}

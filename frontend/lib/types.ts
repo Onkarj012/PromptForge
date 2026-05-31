@@ -8,7 +8,32 @@ export type RefineRequest = {
     target_tool?: string;
     project_type?: string;
     stack?: string;
+    steer?: string;
 }
+
+export type StreamEvent = {
+    event: "start" | "draft" | "critique" | "iteration" | "done" | "error";
+    iteration?: number;
+    prompt?: string;
+    score?: number;
+    critique?: { strengths?: string[]; weaknesses?: string[]; suggestions?: string[] };
+    cost?: number;
+    original_prompt?: string;
+    final_prompt?: string;
+    final_score?: number;
+    iterations?: number;
+    total_cost?: number;
+    total_tokens?: number;
+    message?: string;
+};
+
+export type LiveIteration = {
+    iteration: number;
+    prompt: string;
+    critique: string;
+    score: number;
+    cost?: number;
+};
 
 export type RefineResponse = {
     run_id: string;
