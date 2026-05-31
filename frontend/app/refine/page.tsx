@@ -1,559 +1,343 @@
 "use client";
 
-import Link from "next/link";
-import {
-  AlertCircle,
-  Check,
-  Copy,
-  Gauge,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { useState } from "react";
+import { AlertCircle, Check, ChevronRight, Copy, Loader2, Plus, X } from "lucide-react";
+import { ModeNav } from "@/components/mode-nav";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ModelSelector } from "@/components/model-selector";
 import { IterationCard } from "@/components/iteration-card";
-import { useRefinement } from "@/lib/hooks/useRefinement";
-import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { useForge } from "@/lib/hooks/useRefinement";
+import { cn } from "@/lib/utils";
 
-const TONES = [
-  "Analytical",
-  "Cinematic",
-  "Concise",
-  "Direct",
-  "Persuasive",
-  "Playful",
-  "Technical",
+const TOOLS = ["cursor", "bolt", "v0", "claude", "generic"];
+const DEPTHS = [
+  { key: "quick", label: "Quick", iterations: 2 },
+  { key: "balanced", label: "Balanced", iterations: 3 },
+  { key: "deep", label: "Deep", iterations: 5 },
+] as const;
+const STEERS = ["More concise", "Add output format", "Stronger constraints", "Make it for Cursor", "Add examples"];
+const ASSERT_TYPES = ["contains", "not_contains", "regex", "json", "max_len", "min_len"];
+const AUTONOMY = [
+  { key: "bounded", label: "Bounded" },
+  { key: "auto", label: "Auto" },
+  { key: "totally_auto", label: "Totally auto" },
 ];
 
-const PROFILES = {
-  quick: {
-    label: "Quick",
-    description: "2 iterations",
-    iterations: 2,
-  },
-  balanced: {
-    label: "Balanced",
-    description: "3 iterations",
-    iterations: 3,
-  },
-  deep: {
-    label: "Deep",
-    description: "5 iterations",
-    iterations: 5,
-  },
-} as const;
+function detectMode(input: string): "improve" | "generate" {
+  const t = input.trim();
+  if (t.length > 240 || /\n/.test(t) || /\b(you are|your task|respond|output|format|##|return only|step by step)\b/i.test(t))
+    return "improve";
+  return "generate";
+}
+function detectTool(input: string): string {
+  const t = input.toLowerCase();
+  if (/\bcursor\b/.test(t)) return "cursor";
+  if (/\bv0\b/.test(t)) return "v0";
+  if (/\bbolt\b/.test(t)) return "bolt";
+  if (/(next\.?js|react|tailwind|supabase|typescript|api|backend|component|endpoint|\bcode\b)/.test(t)) return "cursor";
+  return "generic";
+}
 
-type ProfileKey = keyof typeof PROFILES;
-type ProfileState = ProfileKey | "custom";
+function Corners() {
+  return (
+    <>
+      <Plus className="pointer-events-none absolute -left-[7px] -top-[7px] h-3.5 w-3.5 text-primary/70" />
+      <Plus className="pointer-events-none absolute -bottom-[7px] -right-[7px] h-3.5 w-3.5 text-primary/70" />
+    </>
+  );
+}
 
-export default function Page() {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [userInput, setUserInput] = useState("");
-  const [domain, setDomain] = useState("");
-  const [goal, setGoal] = useState("");
-  const [audience, setAudience] = useState("");
-  const [constraints, setConstraints] = useState("");
-  const [tone, setTone] = useState("");
-  const [profile, setProfile] = useState<ProfileState>("balanced");
-  const [maxIterations, setMaxIterations] = useState(
-    PROFILES.balanced.iterations,
-  );
-  const [creatorModel, setCreatorModel] = useState(
-    "anthropic/claude-3.5-sonnet",
-  );
+const PillRow = ({ items, value, onPick, render }: { items: string[]; value: string; onPick: (v: string) => void; render?: (v: string) => string }) => (
+  <div className="flex flex-wrap gap-1.5">
+    {items.map((it) => (
+      <button
+        key={it}
+        onClick={() => onPick(it)}
+        className={cn(
+          "rounded-[7px] border border-dashed px-2.5 py-1 text-[11px]",
+          value === it ? "border-primary bg-primary/10 text-foreground" : "border-white/10 text-muted-foreground hover:text-foreground",
+        )}
+      >
+        {render ? render(it) : it}
+      </button>
+    ))}
+  </div>
+);
+
+export default function ForgePage() {
+  const [input, setInput] = useState("");
+  const [modeOverride, setModeOverride] = useState<"improve" | "generate" | null>(null);
+  const [toolOverride, setToolOverride] = useState<string | null>(null);
+  const [depthKey, setDepthKey] = useState<string>("balanced");
+  const [creatorModel, setCreatorModel] = useState("anthropic/claude-3.5-sonnet");
   const [criticModel, setCriticModel] = useState("openai/gpt-4o-mini");
+  const [steerText, setSteerText] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [testInputs, setTestInputs] = useState<string[]>([]);
+  const [assertions, setAssertions] = useState<{ type: string; value?: string }[]>([]);
+  const [aType, setAType] = useState("contains");
+  const [aValue, setAValue] = useState("");
+  const [autonomy, setAutonomy] = useState("auto");
+  const [gated, setGated] = useState(true);
+  const [orchestratorModel, setOrchestratorModel] = useState("openai/gpt-4o-mini");
+  const [maxSteps, setMaxSteps] = useState(6);
+  const [maxCost, setMaxCost] = useState(1.0);
 
-  const { isLoading, error, iterations, response, startRefinement, reset } =
-    useRefinement();
+  const { iterations, finalPrompt, finalScore, totalCost, status, isStreaming, error, decisions, gate, terminationReason, start, steer, resume } = useForge();
 
-  const [isFinalCopied, setIsFinalCopied] = useState(false);
+  const mode = modeOverride ?? detectMode(input);
+  const tool = toolOverride ?? detectTool(input);
+  const depth = DEPTHS.find((d) => d.key === depthKey) ?? DEPTHS[1];
 
-  const handleFinalCopy = async () => {
-    if (response?.final_prompt) {
-      await navigator.clipboard.writeText(response.final_prompt);
-      setIsFinalCopied(true);
-      setTimeout(() => setIsFinalCopied(false), 2000);
-    }
+  const base = () => ({
+    mode: "user_defined" as const,
+    creator_model: creatorModel,
+    critic_model: criticModel,
+    target_tool: tool,
+    test_inputs: testInputs.map((t) => t.trim()).filter(Boolean),
+    assertions,
+    autonomy,
+    orchestrator_model: orchestratorModel,
+    gated: gated && autonomy !== "totally_auto",
+    max_steps: maxSteps,
+    max_cost: maxCost,
+  });
+  const addAssertion = () => {
+    if (aType !== "json" && !aValue.trim()) return;
+    setAssertions((a) => [...a, { type: aType, value: aType === "json" ? undefined : aValue.trim() }]);
+    setAValue("");
   };
-
-  const handleInput = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    }
+  const runRefine = () => {
+    if (input.trim().length < 10) return;
+    start({ ...base(), prompt: input, iterations: depth.iterations });
   };
-
-  useEffect(() => {
-    handleInput();
-  }, [userInput]);
-
-  const buildPrompt = () => {
-    const sections = [userInput.trim()];
-    if (goal.trim()) {
-      sections.push(`Goal: ${goal.trim()}`);
-    }
-    if (audience.trim()) {
-      sections.push(`Audience: ${audience.trim()}`);
-    }
-    if (tone.trim()) {
-      sections.push(`Tone: ${tone.trim()}`);
-    }
-    if (constraints.trim()) {
-      sections.push(`Constraints: ${constraints.trim()}`);
-    }
-    return sections.filter(Boolean).join("\n\n");
+  const applySteer = (instruction: string) => {
+    if (!finalPrompt || isStreaming) return;
+    steer({ ...base(), prompt: finalPrompt, iterations: 1, steer: instruction });
+    setSteerText("");
   };
-
-  const builtPrompt = buildPrompt();
-  const wordCount = builtPrompt.trim()
-    ? builtPrompt.trim().split(/\s+/).length
-    : 0;
-  const charCount = builtPrompt.length;
-
-  const profileLabel =
-    profile === "custom" ? "Custom" : PROFILES[profile].label;
-
-  const handleSubmit = async () => {
-    if (!userInput.trim() || userInput.length < 10) {
-      return;
-    }
-
-    try {
-      await startRefinement({
-        prompt: builtPrompt,
-        domain: domain || undefined,
-        mode: "user_defined",
-        creator_model: creatorModel,
-        critic_model: criticModel,
-        iterations: maxIterations,
-      });
-    } catch (error) {
-      console.error("Refinement failed:", error);
-    }
+  const copyFinal = async () => {
+    if (!finalPrompt) return;
+    await navigator.clipboard.writeText(finalPrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  const handleReset = () => {
-    reset();
-    setUserInput("");
-    setDomain("");
-    setGoal("");
-    setAudience("");
-    setConstraints("");
-    setTone("");
-    setProfile("balanced");
-    setMaxIterations(PROFILES.balanced.iterations);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  };
-
-  const applyProfile = (nextProfile: ProfileKey) => {
-    setProfile(nextProfile);
-    setMaxIterations(PROFILES[nextProfile].iterations);
-  };
-
-  const statusLabel = isLoading ? "Running" : response ? "Complete" : "Idle";
 
   return (
-    <main className="relative min-h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-100 motion-safe:animate-in motion-safe:fade-in">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 right-1/4 h-[420px] w-[420px] rounded-full bg-primary/20 blur-[140px]" />
-        <div className="absolute bottom-0 left-1/4 h-[360px] w-[360px] rounded-full bg-fuchsia-500/10 blur-[160px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_80%_20%,rgba(63,63,70,0.12),transparent)]" />
+    <main className="min-h-screen bg-background text-foreground">
+      <ModeNav />
+      <div className="sticky top-16 z-30 border-b border-dashed border-white/10 bg-background/90 px-4 py-3 backdrop-blur">
+        <div className="mx-auto max-w-7xl">
+          <p className="font-eyebrow text-[10px] text-foreground/60">Forge Mode</p>
+          <h1 className="font-display text-2xl">Forge a better prompt.</h1>
+        </div>
       </div>
-
-      <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-zinc-800/60 bg-zinc-950/80 px-6 py-4 backdrop-blur">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center border border-zinc-800/70 bg-zinc-900/70">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">
-                PromptForge
-              </p>
-              <p className="text-sm font-medium">Prompt Studio</p>
-            </div>
-          </Link>
-          <div className="hidden items-center gap-2 text-xs text-zinc-300 sm:flex">
-            <Badge className="border border-zinc-800/70 bg-zinc-900/70 text-zinc-200">
-              {statusLabel}
-            </Badge>
-            <span>Agentic refinement workspace</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              disabled={isLoading}
-            >
-              New Session
-            </Button>
-          </div>
-        </header>
-
-        <ResizablePanelGroup
-          orientation="horizontal"
-          className="flex-1 border-t border-zinc-800/40"
-        >
-          <ResizablePanel defaultSize={48} minSize={32}>
-            <div className="flex h-full flex-col gap-6 overflow-auto p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">
-                    Input Layer
-                  </p>
-                  <h2 className="text-lg font-semibold text-zinc-100">
-                    Prompt Studio
-                  </h2>
-                </div>
-                {response && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReset}
-                    disabled={isLoading}
-                  >
-                    New Prompt
-                  </Button>
-                )}
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
-                    Words
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
-                    {wordCount}
-                  </p>
-                </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
-                    Characters
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
-                    {charCount}
-                  </p>
-                </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
-                    Profile
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
-                    {profileLabel}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-4 rounded-none border border-zinc-800/70 bg-zinc-900/40 p-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="prompt">Your Prompt</Label>
-                  <span className="text-xs text-zinc-400">Min 10 chars</span>
-                </div>
-                <Textarea
-                  id="prompt"
-                  ref={textareaRef}
-                  placeholder="Describe what you want to create..."
-                  className="min-h-[140px] resize-none overflow-hidden border-zinc-800/70 bg-zinc-950/60"
-                  onInput={handleInput}
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  disabled={isLoading}
-                />
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="domain">Domain (Optional)</Label>
-                    <Input
-                      id="domain"
-                      placeholder="e.g., product, code, story"
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="iterations">Max Iterations</Label>
-                    <Input
-                      id="iterations"
-                      type="number"
-                      min={1}
-                      max={5}
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
-                      value={maxIterations}
-                      onChange={(e) => {
-                        const nextValue = parseInt(e.target.value, 10);
-                        const safeValue = Number.isNaN(nextValue)
-                          ? PROFILES.balanced.iterations
-                          : nextValue;
-                        const clampedValue = Math.min(
-                          5,
-                          Math.max(1, safeValue),
-                        );
-                        setMaxIterations(clampedValue);
-                        const matchedProfile = (
-                          Object.keys(PROFILES) as ProfileKey[]
-                        ).find(
-                          (key) => PROFILES[key].iterations === clampedValue,
-                        );
-                        setProfile(matchedProfile ?? "custom");
-                      }}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3">
-                  <div>
-                    <Label htmlFor="goal">Goal (Optional)</Label>
-                    <Input
-                      id="goal"
-                      placeholder="Outcome you want from the refined prompt"
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
-                      value={goal}
-                      onChange={(e) => setGoal(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="audience">Audience (Optional)</Label>
-                    <Input
-                      id="audience"
-                      placeholder="Who the output is for"
-                      className="mt-2 border-zinc-800/70 bg-zinc-950/60"
-                      value={audience}
-                      onChange={(e) => setAudience(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="constraints">Constraints (Optional)</Label>
-                    <Textarea
-                      id="constraints"
-                      placeholder="Formatting, structure, exclusions"
-                      className="mt-2 min-h-[90px] resize-none border-zinc-800/70 bg-zinc-950/60"
-                      value={constraints}
-                      onChange={(e) => setConstraints(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Tone (Optional)</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {TONES.map((toneOption) => (
-                      <Button
-                        key={toneOption}
-                        type="button"
-                        variant={tone === toneOption ? "default" : "outline"}
-                        size="sm"
-                        onClick={() =>
-                          setTone(tone === toneOption ? "" : toneOption)
-                        }
-                      >
-                        {toneOption}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Refinement Profile</Label>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {(Object.keys(PROFILES) as ProfileKey[]).map((key) => (
-                    <Button
-                      key={key}
-                      type="button"
-                      variant={profile === key ? "default" : "outline"}
-                      className="justify-between"
-                      onClick={() => applyProfile(key)}
-                    >
-                      <span>{PROFILES[key].label}</span>
-                      <span className="text-xs text-zinc-300">
-                        {PROFILES[key].description}
-                      </span>
-                    </Button>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          {/* Composer (sticky on desktop) */}
+          <div className="relative rounded-[10px] border border-dashed border-white/15 bg-card p-6 lg:sticky lg:top-[148px]">
+            <Corners />
+            <div className="mb-3 flex items-center justify-between">
+              <Label htmlFor="input" className="font-eyebrow text-xs text-muted-foreground">Your prompt or idea</Label>
+              {input.trim().length > 0 && (
+                <div className="flex items-center gap-1 font-eyebrow text-[10px]">
+                  {(["improve", "generate"] as const).map((m) => (
+                    <button key={m} onClick={() => setModeOverride(m)} className={cn("rounded-[7px] px-2 py-1", mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+                      {m}
+                    </button>
                   ))}
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <ModelSelector
-                  value={creatorModel}
-                  onValueChange={setCreatorModel}
-                  label="Creator Model"
-                />
-
-                <ModelSelector
-                  value={criticModel}
-                  onValueChange={setCriticModel}
-                  label="Critic Model"
-                />
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={handleSubmit}
-                disabled={isLoading || userInput.length < 10}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Refining...
-                  </>
-                ) : (
-                  "Refine Prompt"
-                )}
-              </Button>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
               )}
-
-              <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-4">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-zinc-400">
-                  <Gauge className="h-3 w-3 text-primary" />
-                  Prompt Checklist
-                </div>
-                <ul className="mt-3 space-y-2 text-xs text-zinc-300">
-                  <li>Specify the desired outcome and audience.</li>
-                  <li>Call out constraints, exclusions, and format needs.</li>
-                  <li>Keep the prompt focused on a single job-to-be-done.</li>
-                </ul>
-              </div>
             </div>
-          </ResizablePanel>
+            <Textarea
+              id="input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="e.g. Build a SaaS landing page with Next.js + Stripe — or paste an existing system prompt to improve."
+              className="min-h-[180px] border-white/10 bg-black/40 text-base"
+              disabled={isStreaming}
+            />
+            <div className="mt-5">
+              <p className="font-eyebrow mb-1.5 text-[10px] text-muted-foreground">Target tool</p>
+              <PillRow items={TOOLS} value={tool} onPick={setToolOverride} />
+            </div>
+            <div className="mt-4">
+              <p className="font-eyebrow mb-1.5 text-[10px] text-muted-foreground">Depth</p>
+              <PillRow items={DEPTHS.map((d) => d.key)} value={depthKey} onPick={setDepthKey} render={(k) => {
+                const d = DEPTHS.find((x) => x.key === k)!;
+                return `${d.label} · ${d.iterations}`;
+              }} />
+            </div>
+            <div className="mt-4">
+              <p className="font-eyebrow mb-1.5 text-[10px] text-muted-foreground">Autonomy</p>
+              <PillRow items={AUTONOMY.map((a) => a.key)} value={autonomy} onPick={setAutonomy} render={(k) => AUTONOMY.find((a) => a.key === k)!.label} />
+            </div>
 
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={52} minSize={32}>
-            <div className="flex h-full flex-col gap-4 p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">
-                    Output Layer
-                  </p>
-                  <h2 className="text-lg font-semibold text-zinc-100">
-                    Refinement Timeline
-                  </h2>
-                </div>
-                <Badge className="border border-zinc-800/70 bg-zinc-900/70 text-zinc-200">
-                  {statusLabel}
-                </Badge>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
-                    Final Score
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
-                    {response?.final_score !== undefined
-                      ? `${response.final_score}/10`
-                      : "--"}
-                  </p>
-                </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
-                    Cost
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
-                    {response?.total_cost !== undefined
-                      ? `$${response.total_cost.toFixed(4)}`
-                      : "--"}
-                  </p>
-                </div>
-                <div className="rounded-none border border-zinc-800/70 bg-zinc-900/50 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400">
-                    Iterations
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
-                    {response?.iterations ?? "--"}
-                  </p>
-                </div>
-              </div>
-
-              {!isLoading && iterations.length === 0 && (
-                <div className="flex flex-1 flex-col items-center justify-center rounded-none border border-dashed border-zinc-800/70 bg-zinc-900/30 p-8 text-center">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                  <p className="mt-4 text-sm text-zinc-200">
-                    Submit a prompt to see the refinement process.
-                  </p>
-                  <p className="mt-2 text-xs text-zinc-400">
-                    The timeline will capture critique, revisions, and scoring.
-                  </p>
-                </div>
-              )}
-
-              {isLoading && (
-                <div className="space-y-4">
-                  <Skeleton className="h-[200px] w-full" />
-                  <Skeleton className="h-[200px] w-full" />
-                </div>
-              )}
-
-              {iterations.length > 0 && (
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-4 pr-4">
-                    {iterations.map((iteration) => (
-                      <IterationCard
-                        key={iteration.iteration}
-                        iteration={iteration}
-                      />
-                    ))}
-
-                    {response && (
-                      <div className="mt-6 rounded-none border border-primary/20 bg-primary/5 p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold text-primary">
-                            Final Refined Prompt
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 hover:bg-primary/10"
-                            onClick={handleFinalCopy}
-                          >
-                            {isFinalCopied ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3 text-primary/70" />
-                            )}
-                          </Button>
-                        </div>
-                        <div className="prose dark:prose-invert max-w-none text-sm break-words motion-safe:animate-fade-in">
-                          <ReactMarkdown>{response.final_prompt}</ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
+            <details className="group mt-4 border-t border-dashed border-white/10 pt-4">
+              <summary className="font-eyebrow cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">+ Agent settings</summary>
+              <div className="mt-3 grid gap-4">
+                <ModelSelector value={orchestratorModel} onValueChange={setOrchestratorModel} label="Orchestrator Model" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="maxsteps" className="font-eyebrow text-[10px] text-muted-foreground">Max steps</Label>
+                    <input id="maxsteps" type="number" min={1} max={30} value={maxSteps} onChange={(e) => setMaxSteps(Math.max(1, Math.min(30, parseInt(e.target.value) || 6)))} className="mt-1 w-full rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none" />
                   </div>
-                </ScrollArea>
+                  <div>
+                    <Label htmlFor="maxcost" className="font-eyebrow text-[10px] text-muted-foreground">Max cost $</Label>
+                    <input id="maxcost" type="number" min={0.01} step={0.1} value={maxCost} onChange={(e) => setMaxCost(Math.max(0.01, parseFloat(e.target.value) || 1))} className="mt-1 w-full rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none" />
+                  </div>
+                </div>
+                {autonomy !== "totally_auto" && (
+                  <label className="flex items-center gap-2 text-sm text-foreground/80">
+                    <input type="checkbox" checked={gated} onChange={(e) => setGated(e.target.checked)} className="accent-primary" />
+                    Pause for my approval before each refine / finish
+                  </label>
+                )}
+              </div>
+            </details>
+
+            <details className="group mt-4 border-t border-dashed border-white/10 pt-4">
+              <summary className="font-eyebrow cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">+ Models</summary>
+              <div className="mt-3 grid gap-4">
+                <ModelSelector value={creatorModel} onValueChange={setCreatorModel} label="Creator Model" />
+                <ModelSelector value={criticModel} onValueChange={setCriticModel} label="Critic Model" />
+              </div>
+            </details>
+
+            <details className="group mt-4 border-t border-dashed border-white/10 pt-4">
+              <summary className="font-eyebrow cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">+ Test inputs &amp; assertions</summary>
+              <div className="mt-3 grid gap-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="font-eyebrow text-[10px] text-muted-foreground">Test inputs</p>
+                    <button onClick={() => setTestInputs((t) => [...t, ""])} className="font-eyebrow text-[10px] text-primary hover:underline">+ add</button>
+                  </div>
+                  <div className="mt-2 grid gap-2">
+                    {testInputs.map((ti, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input value={ti} onChange={(e) => setTestInputs((a) => a.map((x, j) => (j === i ? e.target.value : x)))} placeholder={`Scenario #${i + 1}`} className="flex-1 rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
+                        <button onClick={() => setTestInputs((a) => a.filter((_, j) => j !== i))} className="grid w-9 place-items-center rounded-[10px] border border-dashed border-white/10 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground/60">Leave empty to run the prompt directly.</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="font-eyebrow text-[10px] text-muted-foreground">Assertions (deterministic checks)</p>
+                  {assertions.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {assertions.map((as, i) => (
+                        <span key={i} className="flex items-center gap-1.5 rounded-[7px] border border-dashed border-white/10 px-2 py-1 text-[11px] text-foreground/80">
+                          {as.type}{as.value ? `: ${as.value}` : ""}
+                          <button onClick={() => setAssertions((a) => a.filter((_, j) => j !== i))}><X className="h-3 w-3 text-muted-foreground hover:text-foreground" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-2 flex gap-2">
+                    <select value={aType} onChange={(e) => setAType(e.target.value)} className="rounded-[10px] border border-white/10 bg-black/40 px-2 py-2 text-sm outline-none">
+                      {ASSERT_TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}
+                    </select>
+                    {aType !== "json" && (
+                      <input value={aValue} onChange={(e) => setAValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addAssertion()} placeholder="value" className="flex-1 rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
+                    )}
+                    <Button variant="outline" size="sm" onClick={addAssertion}>Add</Button>
+                  </div>
+                </div>
+              </div>
+            </details>
+            <Button className="mt-6 w-full" onClick={runRefine} disabled={isStreaming || input.trim().length < 10}>
+              {isStreaming ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {status || "Refining…"}</>) : `${mode === "generate" ? "Generate" : "Refine"} prompt`}
+            </Button>
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          {/* Results — versions stream in one by one */}
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="font-eyebrow text-xs text-foreground/60">
+                {isStreaming ? status || "Working…" : finalScore != null ? `Result · ${finalScore}/10` : "Result"}
+              </p>
+              {!isStreaming && finalScore != null && (
+                <span className="font-eyebrow text-[10px] text-muted-foreground">
+                  ${(totalCost ?? 0).toFixed(4)} · {iterations.length} versions
+                </span>
               )}
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+
+            {gate && (
+              <div className="mt-4 rounded-[10px] border border-primary bg-primary/10 p-4">
+                <p className="font-eyebrow text-[10px] text-primary">Approval needed</p>
+                <p className="mt-2 text-sm text-foreground/85">
+                  The agent wants to <strong>{gate.pending_action}</strong>
+                  {gate.decision?.reason ? ` — ${gate.decision.reason}` : ""}.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" onClick={() => resume(true)}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={() => resume(false)}>Reject &amp; finish</Button>
+                </div>
+              </div>
+            )}
+
+            {decisions.length > 0 && (
+              <details className="group mt-4 rounded-[10px] border border-dashed border-white/10 bg-card">
+                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3">
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-90" />
+                  <span className="font-eyebrow text-xs text-muted-foreground">Decision trace · {decisions.length}{terminationReason ? ` · ${terminationReason}` : ""}</span>
+                </summary>
+                <ol className="space-y-1 border-t border-white/10 px-4 py-3 text-xs text-foreground/70">
+                  {decisions.map((d, i) => (
+                    <li key={i}>
+                      <span className="text-primary">{d.action}</span>
+                      {d.reason ? ` — ${d.reason}` : ""}
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
+
+            <div className="mt-4 space-y-4">
+              {iterations.map((it, i) => (
+                <IterationCard key={i} iteration={it} />
+              ))}
+              {isStreaming && (
+                <div className="h-32 animate-pulse rounded-[10px] border border-dashed border-white/10 bg-white/[0.02]" />
+              )}
+            </div>
+
+            {finalPrompt && !isStreaming && (
+              <div className="mt-6 rounded-[10px] border border-dashed border-white/15 bg-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="font-eyebrow text-xs text-muted-foreground">Steer the result</p>
+                  <Button variant="ghost" size="sm" onClick={copyFinal}>
+                    {copied ? <Check className="mr-1 h-3.5 w-3.5 text-primary" /> : <Copy className="mr-1 h-3.5 w-3.5" />} Copy
+                  </Button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {STEERS.map((s) => (<Button key={s} size="sm" variant="outline" onClick={() => applySteer(s)}>{s}</Button>))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={steerText}
+                    onChange={(e) => setSteerText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && steerText.trim() && applySteer(steerText.trim())}
+                    placeholder="…or tell it what to change"
+                    className="flex-1 rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/60"
+                  />
+                  <Button onClick={() => steerText.trim() && applySteer(steerText.trim())} disabled={!steerText.trim()}>Apply</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </main>
   );
