@@ -38,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${serif.variable} ${sans.variable} ${accent.variable} ${mono.variable}`}
+      className={`${serif.variable} ${sans.variable} ${accent.variable} ${mono.variable} dark`}
     >
       <body className="antialiased">{children}</body>
     </html>
