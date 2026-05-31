@@ -20,13 +20,21 @@ const BENCH_MODELS = [
   "mistralai/mistral-large",
 ];
 
+// DEMO: hardcoded sample data — remove when backend is live
+const SAMPLE_BENCH: BenchResult[] = [
+  { model: "anthropic/claude-3.5-sonnet", score: 9, latency_ms: 1840, tokens: 1320, cost: 0.00642, quality_per_dollar: 1402 },
+  { model: "google/gemini-pro-1.5", score: 8, latency_ms: 1560, tokens: 1290, cost: 0.0019, quality_per_dollar: 4210 },
+  { model: "openai/gpt-4o", score: 8, latency_ms: 2210, tokens: 1410, cost: 0.0118, quality_per_dollar: 678 },
+  { model: "openai/gpt-4o-mini", score: 6, latency_ms: 980, tokens: 1205, cost: 0.00038, quality_per_dollar: 15789 },
+];
+
 export default function BenchPage() {
   const [prompt, setPrompt] = useState("");
   const [selected, setSelected] = useState<string[]>([
     "openai/gpt-4o-mini",
     "anthropic/claude-3.5-sonnet",
   ]);
-  const [results, setResults] = useState<BenchResult[] | null>(null);
+  const [results, setResults] = useState<BenchResult[] | null>(SAMPLE_BENCH);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

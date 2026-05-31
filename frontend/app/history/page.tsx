@@ -7,14 +7,39 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { listRuns } from "@/lib/api";
 import { RunSummary } from "@/lib/types";
 
+// DEMO: hardcoded sample data — remove when backend is live
+const SAMPLE_RUNS: RunSummary[] = [
+  {
+    run_id: "demo-1", mode: "user_defined",
+    creator_model: "anthropic/claude-3.5-sonnet", critic_model: "openai/gpt-4o-mini",
+    original_prompt: "Build a SaaS landing page with Next.js, Supabase auth, and Stripe billing.",
+    final_score: 9, total_cost: 0.0123, total_tokens: 3420, max_iterations: 3,
+    created_at: new Date(Date.now() - 3600_000).toISOString(),
+  },
+  {
+    run_id: "demo-2", mode: "user_defined",
+    creator_model: "openai/gpt-4o", critic_model: "openai/gpt-4o-mini",
+    original_prompt: "Write a Cursor prompt to add JWT auth to a FastAPI service.",
+    final_score: 8, total_cost: 0.0087, total_tokens: 2610, max_iterations: 2,
+    created_at: new Date(Date.now() - 86_400_000).toISOString(),
+  },
+  {
+    run_id: "demo-3", mode: "user_defined",
+    creator_model: "google/gemini-pro-1.5", critic_model: "openai/gpt-4o-mini",
+    original_prompt: "Generate a v0 prompt for a pricing page with three tiers.",
+    final_score: 7, total_cost: 0.0019, total_tokens: 1980, max_iterations: 2,
+    created_at: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+  },
+];
+
 export default function HistoryPage() {
-  const [runs, setRuns] = useState<RunSummary[] | null>(null);
+  const [runs, setRuns] = useState<RunSummary[] | null>(SAMPLE_RUNS);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     listRuns()
-      .then(setRuns)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load history"));
+      .then((r) => r.length > 0 && setRuns(r)) // keep demo data if backend empty/offline
+      .catch(() => setError(null));
   }, []);
 
   return (
