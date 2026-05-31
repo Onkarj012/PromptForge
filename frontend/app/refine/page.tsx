@@ -1,10 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AlertCircle, Check, Copy, Loader2, Plus } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 import { ModeNav } from "@/components/mode-nav";
-import { PipelineFlow } from "@/components/pipeline-flow";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,7 +10,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ModelSelector } from "@/components/model-selector";
 import { IterationCard } from "@/components/iteration-card";
 import { useForge } from "@/lib/hooks/useRefinement";
-import { diffLines } from "@/lib/diff";
 import { cn } from "@/lib/utils";
 
 const TOOLS = ["cursor", "bolt", "v0", "claude", "generic"];
@@ -22,8 +19,6 @@ const DEPTHS = [
   { key: "deep", label: "Deep", iterations: 5 },
 ] as const;
 const STEERS = ["More concise", "Add output format", "Stronger constraints", "Make it for Cursor", "Add examples"];
-const VIEWS = ["diff", "side", "versions"] as const;
-type View = (typeof VIEWS)[number];
 
 function detectMode(input: string): "improve" | "generate" {
   const t = input.trim();
@@ -73,25 +68,16 @@ export default function ForgePage() {
   const [depthKey, setDepthKey] = useState<string>("balanced");
   const [creatorModel, setCreatorModel] = useState("anthropic/claude-3.5-sonnet");
   const [criticModel, setCriticModel] = useState("openai/gpt-4o-mini");
-  const [view, setView] = useState<View>("diff");
   const [steerText, setSteerText] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const { originalPrompt, iterations, finalPrompt, finalScore, totalCost, status, isStreaming, error, start, steer } = useForge();
+  const { iterations, finalPrompt, finalScore, totalCost, status, isStreaming, error, start, steer } = useForge();
 
   const mode = modeOverride ?? detectMode(input);
   const tool = toolOverride ?? detectTool(input);
   const depth = DEPTHS.find((d) => d.key === depthKey) ?? DEPTHS[1];
 
-  const phase = !isStreaming ? 0
-    : /draft/i.test(status) ? 1
-    : /scor/i.test(status) ? 2
-    : /steer|apply/i.test(status) ? 3
-    : /complete/i.test(status) ? 4
-    : 1;
-
   const base = () => ({ mode: "user_defined" as const, creator_model: creatorModel, critic_model: criticModel, target_tool: tool });
-
   const runRefine = () => {
     if (input.trim().length < 10) return;
     start({ ...base(), prompt: input, iterations: depth.iterations });
@@ -108,18 +94,12 @@ export default function ForgePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const diff = useMemo(() => (originalPrompt && finalPrompt ? diffLines(originalPrompt, finalPrompt) : []), [originalPrompt, finalPrompt]);
-
   return (
-    <main className="min-h-screen bg-background bg-blueprint text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <ModeNav />
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto max-w-7xl px-4 py-8">
         <p className="font-eyebrow text-xs text-foreground/60">Forge Mode</p>
         <h1 className="font-display mt-2 text-4xl">Forge a better prompt.</h1>
-
-        <div className="mt-6">
-          <PipelineFlow phase={phase} streaming={isStreaming} />
-        </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
           {/* Composer (sticky on desktop) */}
@@ -142,7 +122,7 @@ export default function ForgePage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="e.g. Build a SaaS landing page with Next.js + Stripe — or paste an existing system prompt to improve."
-              className="min-h-[160px] border-white/10 bg-black/40 text-base"
+              className="min-h-[180px] border-white/10 bg-black/40 text-base"
               disabled={isStreaming}
             />
             <div className="mt-5">
@@ -174,62 +154,27 @@ export default function ForgePage() {
             )}
           </div>
 
-          {/* Results */}
+          {/* Results — versions stream in one by one */}
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center justify-between">
               <p className="font-eyebrow text-xs text-foreground/60">
                 {isStreaming ? status || "Working…" : finalScore != null ? `Result · ${finalScore}/10` : "Result"}
               </p>
-              <div className="flex items-center gap-1 rounded-[10px] border border-dashed border-white/10 p-1">
-                {VIEWS.map((v) => (
-                  <button key={v} onClick={() => setView(v)} className={cn("font-eyebrow rounded-[7px] px-2.5 py-1.5 text-[11px]", view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                    {v === "side" ? "side-by-side" : v}
-                  </button>
-                ))}
-              </div>
+              {!isStreaming && finalScore != null && (
+                <span className="font-eyebrow text-[10px] text-muted-foreground">
+                  ${(totalCost ?? 0).toFixed(4)} · {iterations.length} versions
+                </span>
+              )}
             </div>
 
-            {!isStreaming && finalScore != null && (
-              <div className="mt-4 flex flex-wrap gap-6 font-eyebrow text-[10px] text-muted-foreground">
-                <span>Score {finalScore}/10</span>
-                <span>Cost ${(totalCost ?? 0).toFixed(4)}</span>
-                <span>{iterations.length} versions</span>
-              </div>
-            )}
-
-            {view === "diff" && finalPrompt && (
-              <div className="mt-4 overflow-hidden rounded-[10px] border border-dashed border-white/10 bg-card">
-                {diff.map((p, i) => (
-                  <div key={i} className={cn("whitespace-pre-wrap px-4 py-0.5 font-mono text-xs", p.type === "add" && "bg-primary/10 text-foreground", p.type === "del" && "bg-destructive/10 text-muted-foreground line-through", p.type === "eq" && "text-foreground/55")}>
-                    <span className="mr-3 select-none text-muted-foreground/60">{p.type === "add" ? "+" : p.type === "del" ? "−" : " "}</span>
-                    {p.text || "\u00A0"}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {view === "side" && (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div className="rounded-[10px] border border-dashed border-white/10 bg-card p-5">
-                  <p className="font-eyebrow text-[10px] text-muted-foreground">Original</p>
-                  <pre className="mt-3 whitespace-pre-wrap font-mono text-xs text-foreground/60">{originalPrompt}</pre>
-                </div>
-                <div className="relative rounded-[10px] border border-primary bg-card p-5">
-                  <Corners />
-                  <p className="font-eyebrow text-[10px] text-primary">Refined</p>
-                  <div className="prose prose-sm prose-invert mt-3 max-w-none break-words">
-                    <ReactMarkdown>{finalPrompt ?? "…"}</ReactMarkdown>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {view === "versions" && (
-              <div className="mt-4 space-y-4">
-                {iterations.map((it, i) => (<IterationCard key={i} iteration={it} />))}
-                {isStreaming && <div className="h-32 animate-pulse rounded-[10px] border border-dashed border-white/10 bg-white/[0.02]" />}
-              </div>
-            )}
+            <div className="mt-4 space-y-4">
+              {iterations.map((it, i) => (
+                <IterationCard key={i} iteration={it} />
+              ))}
+              {isStreaming && (
+                <div className="h-32 animate-pulse rounded-[10px] border border-dashed border-white/10 bg-white/[0.02]" />
+              )}
+            </div>
 
             {finalPrompt && !isStreaming && (
               <div className="mt-6 rounded-[10px] border border-dashed border-white/15 bg-card p-5">

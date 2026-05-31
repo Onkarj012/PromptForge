@@ -60,7 +60,7 @@ export default function BenchPage() {
     .sort((a, b) => (b.quality_per_dollar ?? 0) - (a.quality_per_dollar ?? 0))[0];
 
   return (
-    <main className="min-h-screen bg-background bg-blueprint text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <ModeNav />
       <div className="mx-auto max-w-4xl px-6 py-12">
         <Reveal>
