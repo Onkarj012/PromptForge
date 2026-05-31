@@ -39,8 +39,8 @@ export function Reveal({ children, className, delay = 0 }: RevealProps) {
     <div
       ref={ref}
       className={cn(
-        "motion-safe:opacity-0 motion-safe:translate-y-4 motion-safe:transition motion-safe:duration-700 motion-safe:ease-out",
-        isVisible && "motion-safe:opacity-100 motion-safe:translate-y-0",
+        "motion-safe:opacity-0 motion-safe:translate-y-4 motion-safe:scale-[0.97] motion-safe:transition motion-safe:duration-700 motion-safe:[transition-timing-function:cubic-bezier(0.44,0,0.56,1)]",
+        isVisible && "motion-safe:opacity-100 motion-safe:translate-y-0 motion-safe:scale-100",
         className
       )}
       style={{ transitionDelay: `${delay}ms` }}

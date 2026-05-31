@@ -169,7 +169,7 @@ export default function Page() {
   const statusLabel = isLoading ? "Running" : response ? "Complete" : "Idle";
 
   return (
-    <main className="relative min-h-screen w-screen overflow-hidden bg-background text-foreground motion-safe:animate-in motion-safe:fade-in">
+    <main className="relative min-h-screen w-screen overflow-hidden bg-background bg-blueprint text-foreground motion-safe:animate-in motion-safe:fade-in">
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-white/10 bg-background/80 px-6 py-4 backdrop-blur">
           <Link href="/" className="flex items-center gap-3">
@@ -181,7 +181,7 @@ export default function Page() {
             </span>
           </Link>
           <div className="hidden items-center gap-2 text-xs text-foreground/70 sm:flex">
-            <Badge className="border border-white/10 bg-white/[0.03] text-foreground">
+            <Badge className="border border-dashed border-white/10 bg-white/[0.03] text-foreground">
               {statusLabel}
             </Badge>
             <span>Agentic refinement workspace</span>
@@ -226,7 +226,7 @@ export default function Page() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Words
                   </p>
@@ -234,7 +234,7 @@ export default function Page() {
                     {wordCount}
                   </p>
                 </div>
-                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Characters
                   </p>
@@ -242,7 +242,7 @@ export default function Page() {
                     {charCount}
                   </p>
                 </div>
-                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Profile
                   </p>
@@ -252,7 +252,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="grid gap-4 rounded-[10px] border border-white/10 bg-white/[0.02] p-4">
+              <div className="grid gap-4 rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="prompt">Your Prompt</Label>
                   <span className="text-xs text-muted-foreground">Min 10 chars</span>
@@ -423,7 +423,7 @@ export default function Page() {
                 </Alert>
               )}
 
-              <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-4">
+              <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">
                   <Gauge className="h-3 w-3 text-primary" />
                   Prompt Checklist
@@ -450,13 +450,13 @@ export default function Page() {
                     Refinement Timeline
                   </h2>
                 </div>
-                <Badge className="border border-white/10 bg-white/[0.03] text-foreground">
+                <Badge className="border border-dashed border-white/10 bg-white/[0.03] text-foreground">
                   {statusLabel}
                 </Badge>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Final Score
                   </p>
@@ -466,7 +466,7 @@ export default function Page() {
                       : "--"}
                   </p>
                 </div>
-                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Cost
                   </p>
@@ -476,7 +476,7 @@ export default function Page() {
                       : "--"}
                   </p>
                 </div>
-                <div className="rounded-[10px] border border-white/10 bg-white/[0.02] p-3">
+                <div className="rounded-[10px] border border-dashed border-white/10 bg-white/[0.02] p-3">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                     Iterations
                   </p>

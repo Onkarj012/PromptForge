@@ -174,12 +174,30 @@ html {
   will-change: transform;
 }
 
+/* Architect blueprint grid (subtle dashed-feel cells) */
+.bg-blueprint {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Scale-in entrance (Framer appear signature) */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-scale-in {
+  animation: scale-in 0.7s cubic-bezier(0.44, 0, 0.56, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
   .animate-blink,
-  .animate-float {
+  .animate-float,
+  .animate-scale-in {
     animation: none;
   }
 }
