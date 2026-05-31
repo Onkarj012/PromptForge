@@ -22,6 +22,9 @@ class RefineRequest(BaseModel):
     project_type: str | None = None
     stack: str | None = None
     steer: str | None = None  # one-tap chip / free-text steer for follow-up passes
+    test_inputs: list[str] | None = None  # scenarios to run the candidate prompt on
+    test_model: str | None = None  # model used to execute the candidate (defaults to critic)
+    assertions: list[dict] | None = None  # deterministic checks on the observed outputs
 
 
 router = APIRouter(tags=["agents"])
@@ -48,6 +51,11 @@ def _initial_state(request: RefineRequest, run_id: str) -> dict:
         "project_type": request.project_type,
         "stack": request.stack,
         "steer": request.steer,
+        "test_inputs": request.test_inputs,
+        "test_model": request.test_model,
+        "assertions": request.assertions,
+        "test_outputs": [],
+        "assertion_results": {},
         "history": [],
         "metadata": {"run_id": run_id},
         "usage": {"input_tokens": 0, "output_tokens": 0, "cost": 0.0},
@@ -125,6 +133,10 @@ async def refine_stream(request: RefineRequest, db: AsyncSession = Depends(get_d
                     final_state = st
                     if node == "creator":
                         yield _sse("draft", {"iteration": st.get("iteration", 0) + 1, "prompt": st.get("current_prompt", "")})
+                    elif node == "tester":
+                        yield _sse("test", {"outputs": st.get("test_outputs", [])})
+                    elif node == "asserts":
+                        yield _sse("assert", st.get("assertion_results", {}))
                     elif node == "critic":
                         crit = st.get("critique") or {}
                         yield _sse("critique", {"score": crit.get("score"), "critique": crit})

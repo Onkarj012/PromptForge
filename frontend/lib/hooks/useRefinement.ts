@@ -35,7 +35,9 @@ const DEMO_ORIGINAL = "Build a SaaS landing page with Next.js, Supabase auth, an
 const DEMO_ITERATIONS: LiveIteration[] = [
   { iteration: 1, prompt: "Build a SaaS landing page with Next.js, Supabase auth, and Stripe billing. Include hero, features, and pricing.", critique: "**Weaknesses**\n- No file structure or acceptance criteria\n- Stack not pinned", score: 6, cost: 0.0041 },
   { iteration: 2, prompt: "Build a SaaS landing page (Next.js App Router + Tailwind + Supabase + Stripe). Define sections, the pricing component, and a checkout route.", critique: "**Strengths**\n- Stack pinned, routes named\n\n**Weaknesses**\n- Stripe secret handling unstated", score: 8, cost: 0.0047 },
-  { iteration: 3, prompt: DEMO_FINAL, critique: "**Strengths**\n- Tool-ready for Cursor\n- Verifiable acceptance criteria", score: 9, cost: 0.0035 },
+  { iteration: 3, prompt: DEMO_FINAL, critique: "**Strengths**\n- Tool-ready for Cursor\n- Verifiable acceptance criteria", score: 9, cost: 0.0035,
+    outputs: [{ input: null, output: "Created app/(marketing)/page.tsx with hero, features, pricing, and a Stripe-backed CTA; added /api/checkout server action; gated /dashboard via Supabase middleware." }],
+    assertions: { passed: 3, total: 3, pass_rate: 1 } },
 ];
 
 export function useForge() {
@@ -53,6 +55,12 @@ export function useForge() {
       case "draft":
         setStatus(`Drafting iteration ${e.iteration ?? ""}…`);
         break;
+      case "test":
+        setStatus("Running the prompt to observe outputs…");
+        break;
+      case "assert":
+        setStatus(e.total ? `Checking assertions (${e.passed}/${e.total})…` : "Checking assertions…");
+        break;
       case "critique":
         setStatus(`Scoring${e.score != null ? ` ${e.score}/10` : ""}…`);
         break;
@@ -65,6 +73,8 @@ export function useForge() {
             critique: formatCritique(e.critique),
             score: e.score ?? 0,
             cost: e.cost,
+            outputs: e.test_outputs,
+            assertions: e.assertions,
           },
         ]);
         break;

@@ -9,10 +9,17 @@ export type RefineRequest = {
     project_type?: string;
     stack?: string;
     steer?: string;
+    test_inputs?: string[];
+    test_model?: string;
+    assertions?: Assertion[];
 }
 
+export type Assertion = { type: string; value?: string };
+export type TestOutput = { input?: string | null; output: string };
+export type AssertionResult = { passed: number; total: number; pass_rate: number };
+
 export type StreamEvent = {
-    event: "start" | "draft" | "critique" | "iteration" | "done" | "error";
+    event: "start" | "draft" | "critique" | "test" | "assert" | "iteration" | "done" | "error";
     iteration?: number;
     prompt?: string;
     score?: number;
@@ -25,6 +32,12 @@ export type StreamEvent = {
     total_cost?: number;
     total_tokens?: number;
     message?: string;
+    outputs?: TestOutput[];
+    test_outputs?: TestOutput[];
+    passed?: number;
+    total?: number;
+    pass_rate?: number;
+    assertions?: AssertionResult;
 };
 
 export type LiveIteration = {
@@ -33,6 +46,8 @@ export type LiveIteration = {
     critique: string;
     score: number;
     cost?: number;
+    outputs?: TestOutput[];
+    assertions?: AssertionResult;
 };
 
 export type RefineResponse = {

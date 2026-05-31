@@ -1,5 +1,4 @@
 import asyncio
-import json
 import time
 from uuid import uuid4
 
@@ -10,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.llm import get_openrouter_llm
 from app.agents.cost import extract_usage, estimate_cost
+from app.agents.parsing import extract_json
 from app.api.agents import get_db
 from app.db.models import BenchmarkRun, BenchmarkResult
 
@@ -40,7 +40,8 @@ async def _score(critic_model: str, system: str, user: str, output: str, criteri
     )
     try:
         resp = await get_openrouter_llm(critic_model, temperature=0).ainvoke(prompt)
-        return int(json.loads(resp.content.strip()).get("score", 0))
+        parsed = extract_json(resp.content)
+        return int(parsed.get("score", 0)) if isinstance(parsed, dict) else 0
     except Exception:
         return 0
 

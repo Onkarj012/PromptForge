@@ -20,6 +20,12 @@ class AgentState(TypedDict):
     project_type : Optional[str]
     stack : Optional[str]
     steer : Optional[str]
+
+    test_inputs : Optional[List[str]]
+    test_model : Optional[str]
+    assertions : Optional[List[Dict[str, Any]]]
+    test_outputs : List[Dict[str, Any]]
+    assertion_results : Dict[str, Any]
     
     history : List[Dict[str, Any]]
     metadata : Dict[str, Any]

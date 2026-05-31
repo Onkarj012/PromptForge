@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Check, Copy, Loader2, Plus } from "lucide-react";
+import { AlertCircle, Check, Copy, Loader2, Plus, X } from "lucide-react";
 import { ModeNav } from "@/components/mode-nav";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const DEPTHS = [
   { key: "deep", label: "Deep", iterations: 5 },
 ] as const;
 const STEERS = ["More concise", "Add output format", "Stronger constraints", "Make it for Cursor", "Add examples"];
+const ASSERT_TYPES = ["contains", "not_contains", "regex", "json", "max_len", "min_len"];
 
 function detectMode(input: string): "improve" | "generate" {
   const t = input.trim();
@@ -70,6 +71,10 @@ export default function ForgePage() {
   const [criticModel, setCriticModel] = useState("openai/gpt-4o-mini");
   const [steerText, setSteerText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [testInputs, setTestInputs] = useState<string[]>([]);
+  const [assertions, setAssertions] = useState<{ type: string; value?: string }[]>([]);
+  const [aType, setAType] = useState("contains");
+  const [aValue, setAValue] = useState("");
 
   const { iterations, finalPrompt, finalScore, totalCost, status, isStreaming, error, start, steer } = useForge();
 
@@ -77,7 +82,19 @@ export default function ForgePage() {
   const tool = toolOverride ?? detectTool(input);
   const depth = DEPTHS.find((d) => d.key === depthKey) ?? DEPTHS[1];
 
-  const base = () => ({ mode: "user_defined" as const, creator_model: creatorModel, critic_model: criticModel, target_tool: tool });
+  const base = () => ({
+    mode: "user_defined" as const,
+    creator_model: creatorModel,
+    critic_model: criticModel,
+    target_tool: tool,
+    test_inputs: testInputs.map((t) => t.trim()).filter(Boolean),
+    assertions,
+  });
+  const addAssertion = () => {
+    if (aType !== "json" && !aValue.trim()) return;
+    setAssertions((a) => [...a, { type: aType, value: aType === "json" ? undefined : aValue.trim() }]);
+    setAValue("");
+  };
   const runRefine = () => {
     if (input.trim().length < 10) return;
     start({ ...base(), prompt: input, iterations: depth.iterations });
@@ -144,6 +161,49 @@ export default function ForgePage() {
               <div className="mt-3 grid gap-4">
                 <ModelSelector value={creatorModel} onValueChange={setCreatorModel} label="Creator Model" />
                 <ModelSelector value={criticModel} onValueChange={setCriticModel} label="Critic Model" />
+              </div>
+            </details>
+
+            <details className="group mt-4 border-t border-dashed border-white/10 pt-4">
+              <summary className="font-eyebrow cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">+ Test inputs &amp; assertions</summary>
+              <div className="mt-3 grid gap-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="font-eyebrow text-[10px] text-muted-foreground">Test inputs</p>
+                    <button onClick={() => setTestInputs((t) => [...t, ""])} className="font-eyebrow text-[10px] text-primary hover:underline">+ add</button>
+                  </div>
+                  <div className="mt-2 grid gap-2">
+                    {testInputs.map((ti, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input value={ti} onChange={(e) => setTestInputs((a) => a.map((x, j) => (j === i ? e.target.value : x)))} placeholder={`Scenario #${i + 1}`} className="flex-1 rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
+                        <button onClick={() => setTestInputs((a) => a.filter((_, j) => j !== i))} className="grid w-9 place-items-center rounded-[10px] border border-dashed border-white/10 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground/60">Leave empty to run the prompt directly.</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="font-eyebrow text-[10px] text-muted-foreground">Assertions (deterministic checks)</p>
+                  {assertions.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {assertions.map((as, i) => (
+                        <span key={i} className="flex items-center gap-1.5 rounded-[7px] border border-dashed border-white/10 px-2 py-1 text-[11px] text-foreground/80">
+                          {as.type}{as.value ? `: ${as.value}` : ""}
+                          <button onClick={() => setAssertions((a) => a.filter((_, j) => j !== i))}><X className="h-3 w-3 text-muted-foreground hover:text-foreground" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-2 flex gap-2">
+                    <select value={aType} onChange={(e) => setAType(e.target.value)} className="rounded-[10px] border border-white/10 bg-black/40 px-2 py-2 text-sm outline-none">
+                      {ASSERT_TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}
+                    </select>
+                    {aType !== "json" && (
+                      <input value={aValue} onChange={(e) => setAValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addAssertion()} placeholder="value" className="flex-1 rounded-[10px] border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
+                    )}
+                    <Button variant="outline" size="sm" onClick={addAssertion}>Add</Button>
+                  </div>
+                </div>
               </div>
             </details>
             <Button className="mt-6 w-full" onClick={runRefine} disabled={isStreaming || input.trim().length < 10}>
